@@ -1,0 +1,10 @@
+(env
+ (_ (env-vars (SDL_VIDEO_DRIVER dummy) (SDL_AUDIO_DRIVER dummy))))
+
+(test
+ (name min)
+ (libraries sdl3))
+
+(test
+ (name test_sdl3)
+ (libraries sdl3))

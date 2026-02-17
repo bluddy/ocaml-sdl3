@@ -1,0 +1,5 @@
+(rule
+ (targets sdl3_cflags.sexp sdl3_libs.sexp)
+ (deps gen_sdl3_flags.ml)
+ (action
+  (run ocaml %{project_root}/gen_sdl3_flags.ml)))

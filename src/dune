@@ -1,0 +1,12 @@
+(library
+ (name sdl3)
+ (public_name sdl3)
+ (libraries ctypes ctypes-foreign)
+ (foreign_stubs
+  (language c)
+  (names sdl3_stubs)
+  (flags
+   (:include ../sdl3_cflags.sexp)
+   -Wno-unused-parameter))
+ (c_library_flags (:include ../sdl3_libs.sexp))
+ (modules sdl3_consts sdl3))
