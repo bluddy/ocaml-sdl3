@@ -32,3 +32,14 @@ let sdl_log_priority_info = 4
 let sdl_log_priority_warn = 5
 let sdl_log_priority_error = 6
 let sdl_log_priority_critical = 7
+
+(** {1 Window flags} (SDL uses Uint64) *)
+let sdl_window_fullscreen = 0x0000000000000001L
+let sdl_window_opengl = 0x0000000000000002L
+let sdl_window_hidden = 0x0000000000000008L
+let sdl_window_borderless = 0x0000000000000010L
+let sdl_window_resizable = 0x0000000000000020L
+let sdl_window_minimized = 0x0000000000000040L
+let sdl_window_maximized = 0x0000000000000080L
+let sdl_window_vulkan = 0x0000000010000000L
+let sdl_window_metal = 0x0000000020000000L

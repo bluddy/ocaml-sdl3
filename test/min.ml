@@ -7,5 +7,9 @@ let () =
   log "SDL3 initialized";
   let maj, min, patch = get_version () in
   log (Printf.sprintf "SDL version: %d.%d.%d" maj min patch);
+  let w = Video.create_window "SDL3" 640 480 Video.Window.none in
+  let id = Video.get_window_id w in
+  log (Printf.sprintf "Window ID: %ld" id);
+  Video.destroy_window w;
   quit ();
   print_endline "min: ok"

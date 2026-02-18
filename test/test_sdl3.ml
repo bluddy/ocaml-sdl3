@@ -56,10 +56,42 @@ let test_error () =
   assert (get_error () = "");
   log_test "test_error: ok"
 
+let test_window () =
+  log_test "test_window";
+  init Init.(video + events);
+  let w = Video.create_window "test" 320 240 Video.Window.none in
+  let id = Video.get_window_id w in
+  assert (id <> 0l);
+  let w' = Video.get_window_from_id id in
+  assert (w' = Some w);
+  let disp = Video.get_window_display w in
+  assert (disp <> 0l);
+  Video.destroy_window w;
+  quit ();
+  log_test "test_window: ok"
+
+let test_displays () =
+  log_test "test_displays";
+  init Init.(video + events);
+  let displays = Video.get_displays () in
+  assert (List.length displays > 0);
+  List.iteri (fun i did ->
+    (match Video.get_display_name did with
+     | Some name -> log_test "  display %d: %s" i name
+     | None -> ());
+    (match Video.get_display_bounds did with
+     | Some r -> log_test "    bounds: %d,%d %dx%d" r.x r.y r.w r.h
+     | None -> ()))
+    displays;
+  quit ();
+  log_test "test_displays: ok"
+
 let () =
   test_init ();
   test_hints ();
   test_version ();
   test_log ();
   test_error ();
+  test_window ();
+  test_displays ();
   log_test "=== all tests passed ==="

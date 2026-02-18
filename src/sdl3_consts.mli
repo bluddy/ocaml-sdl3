@@ -35,3 +35,14 @@ val sdl_log_priority_info : int
 val sdl_log_priority_warn : int
 val sdl_log_priority_error : int
 val sdl_log_priority_critical : int
+
+(** {1 Window flags} (SDL uses Uint64) *)
+val sdl_window_fullscreen : int64
+val sdl_window_opengl : int64
+val sdl_window_hidden : int64
+val sdl_window_borderless : int64
+val sdl_window_resizable : int64
+val sdl_window_minimized : int64
+val sdl_window_maximized : int64
+val sdl_window_vulkan : int64
+val sdl_window_metal : int64

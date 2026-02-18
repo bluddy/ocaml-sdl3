@@ -80,4 +80,34 @@ module Sdl : sig
   (** {1 Version} *)
   val get_version : unit -> int * int * int
   val get_revision : unit -> string
+
+  (** {1 Video} *)
+  module Video : sig
+    type rect = Sdl3_video.rect
+    type display_id = int32
+    type window
+    type window_flags = int64
+
+    val get_displays : unit -> display_id list
+    val get_display_name : display_id -> string option
+    val get_display_bounds : display_id -> rect option
+
+    module Window : sig
+      val ( + ) : window_flags -> window_flags -> window_flags
+      val none : window_flags
+      val fullscreen : window_flags
+      val opengl : window_flags
+      val hidden : window_flags
+      val borderless : window_flags
+      val resizable : window_flags
+      val vulkan : window_flags
+      val metal : window_flags
+    end
+
+    val create_window : string -> int -> int -> window_flags -> window
+    val destroy_window : window -> unit
+    val get_window_id : window -> int32
+    val get_window_from_id : int32 -> window option
+    val get_window_display : window -> display_id
+  end
 end

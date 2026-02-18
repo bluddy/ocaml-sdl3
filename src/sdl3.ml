@@ -2,13 +2,10 @@ open Ctypes
 open Foreign
 open Sdl3_consts
 
-exception Sdl_error of string
-
-let get_error = foreign "SDL_GetError" (void @-> returning string)
-let clear_error = foreign "SDL_ClearError" (void @-> returning void)
-
-external set_error_stub : string -> unit = "sdl3_set_error_stub"
-let set_error msg = set_error_stub msg
+exception Sdl_error = Sdl3_error.Sdl_error
+let get_error = Sdl3_error.get_error
+let clear_error = Sdl3_error.clear_error
+let set_error = Sdl3_error.set_error
 
 module Init = struct
   type t = Unsigned.UInt32.t
@@ -123,4 +120,23 @@ module Sdl = struct
   let log_set_priority = log_set_priority
   let get_version = get_version
   let get_revision = get_revision
+
+  (** {1 Video} *)
+  module Video = struct
+    type rect = Sdl3_video.rect
+    type display_id = Sdl3_video.display_id
+    type window = Sdl3_video.window
+    type window_flags = Sdl3_video.window_flags
+
+    let get_displays = Sdl3_video.get_displays
+    let get_display_name = Sdl3_video.get_display_name
+    let get_display_bounds = Sdl3_video.get_display_bounds
+
+    module Window = Sdl3_video.Window
+    let create_window = Sdl3_video.create_window
+    let destroy_window = Sdl3_video.destroy_window
+    let get_window_id = Sdl3_video.get_window_id
+    let get_window_from_id = Sdl3_video.get_window_from_id
+    let get_window_display = Sdl3_video.get_window_display
+  end
 end
