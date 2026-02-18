@@ -5,6 +5,8 @@ open Sdl3_consts
 (** Opaque window pointer *)
 type window = unit ptr
 
+let window_of_ptr (p : unit ptr) : window = p
+
 type rect = { x : int; y : int; w : int; h : int }
 type display_id = int32
 

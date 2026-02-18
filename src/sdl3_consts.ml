@@ -44,3 +44,7 @@ let sdl_window_minimized = 0x0000000000000040L
 let sdl_window_maximized = 0x0000000000000080L
 let sdl_window_vulkan = 0x0000000010000000L
 let sdl_window_metal = 0x0000000020000000L
+
+(** {1 Event types} (SDL_EventType) *)
+let sdl_event_quit = 0x100
+let sdl_event_window_close_requested = 0x20e  (* 0x202 + 12 *)

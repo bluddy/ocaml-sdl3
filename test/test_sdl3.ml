@@ -69,6 +69,16 @@ let test_displays () =
     displays;
   quit ()
 
+let test_events () =
+  init Init.(video + events);
+  let w = Video.create_window "events_test" 100 100 Video.Window.none in
+  for _ = 1 to 3 do
+    ignore (Event.poll ())
+  done;
+  Video.destroy_window w;
+  quit ();
+  check bool "event poll" true true
+
 let () =
   run "SDL3"
     [
@@ -79,4 +89,5 @@ let () =
       ("error", [ test_case "error" `Quick test_error ]);
       ("window", [ test_case "window" `Quick test_window ]);
       ("displays", [ test_case "displays" `Quick test_displays ]);
+      ("events", [ test_case "events" `Quick test_events ]);
     ]

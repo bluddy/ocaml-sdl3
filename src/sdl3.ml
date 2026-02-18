@@ -92,6 +92,16 @@ let get_version () =
   let v = sdl_get_version () in
   (version_num_major v, version_num_minor v, version_num_micro v)
 
+(** {1 Events} *)
+module Event = struct
+  type t = Sdl3_events.t
+  let poll = Sdl3_events.poll_event
+  let wait = Sdl3_events.wait_event
+  let get_type = Sdl3_events.get_type
+  let get_window_from_event = Sdl3_events.get_window_from_event
+  module Type = Sdl3_events.Type
+end
+
 (** {1 Video} *)
 module Video = struct
   type rect = Sdl3_video.rect

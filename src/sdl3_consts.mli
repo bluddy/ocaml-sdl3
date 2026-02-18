@@ -46,3 +46,7 @@ val sdl_window_minimized : int64
 val sdl_window_maximized : int64
 val sdl_window_vulkan : int64
 val sdl_window_metal : int64
+
+(** {1 Event types} *)
+val sdl_event_quit : int
+val sdl_event_window_close_requested : int

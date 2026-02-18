@@ -32,12 +32,23 @@ Tests run with `SDL_VIDEO_DRIVER=dummy` and `SDL_AUDIO_DRIVER=dummy` for headles
 ## Usage
 
 ```ocaml
-open Sdl3.Sdl
+open Sdl3
 
 let () =
   init Init.(video + events);
   log "Hello SDL3";
   let maj, min, patch = get_version () in
   Printf.printf "SDL %d.%d.%d\n" maj min patch;
+  let w = Video.create_window "Hi" 640 480 Video.Window.none in
+  (* Event loop: quit on Event.Type.quit or Event.Type.window_close_requested *)
+  let rec loop () =
+    match Event.poll () with
+    | Some e when Event.get_type e = Event.Type.quit -> ()
+    | Some e when Event.get_type e = Event.Type.window_close_requested -> ()
+    | Some _ -> loop ()
+    | None -> loop ()
+  in
+  loop ();
+  Video.destroy_window w;
   quit ()
 ```

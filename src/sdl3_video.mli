@@ -21,6 +21,9 @@ val get_display_bounds : display_id -> rect option
 (** {1 Window} *)
 type window
 
+val window_of_ptr : unit Ctypes.ptr -> window
+(** Internal: construct window from raw pointer. *)
+
 type window_flags
 
 module Window : sig

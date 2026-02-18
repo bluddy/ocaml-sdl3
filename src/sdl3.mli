@@ -121,3 +121,16 @@ module Video : sig
   val get_window_display : window -> display_id
   val display_id_to_int32 : display_id -> int32
 end
+
+(** {1 Events} *)
+module Event : sig
+  type t = bytes
+  val poll : unit -> t option
+  val wait : unit -> t
+  val get_type : t -> int
+  val get_window_from_event : t -> Video.window option
+  module Type : sig
+    val quit : int
+    val window_close_requested : int
+  end
+end
