@@ -7,4 +7,5 @@
  (depends
   (ocaml (>= 4.08.0))
   (ctypes (>= 0.21.1))
-  (ctypes-foreign (>= 0.21.1))))
+  (ctypes-foreign (>= 0.21.1))
+  (alcotest :with-test)))

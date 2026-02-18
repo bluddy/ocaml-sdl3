@@ -1,97 +1,82 @@
-(* Integration tests for SDL3 bindings. Run with SDL_VIDEO_DRIVER=dummy, SDL_AUDIO_DRIVER=dummy. *)
+(* Integration tests for SDL3 bindings.
+   Require SDL_VIDEO_DRIVER=dummy and SDL_AUDIO_DRIVER=dummy (set in test/dune). *)
 
-open Sdl3.Sdl
-
-let log_test fmt = Printf.eprintf (fmt ^^ "\n%!")
-let () = log_test "=== SDL3 integration tests ==="
+open Sdl3
+open Alcotest
 
 let test_init () =
-  log_test "test_init: init video+events";
   init Init.(video + events);
-  assert (Init.test (was_init None) Init.video);
-  assert (Init.test (was_init None) Init.events);
-  log_test "test_init: quit";
+  check bool "video init" true (Init.test (was_init None) Init.video);
+  check bool "events init" true (Init.test (was_init None) Init.events);
   quit ();
-  assert (not (Init.test (was_init (Some Init.video)) Init.video));
-  log_test "test_init: ok"
+  check bool "video quit" false (Init.test (was_init (Some Init.video)) Init.video)
 
 let test_hints () =
-  log_test "test_hints";
   init Init.events;
   let hint = "sdl3_ocaml_test_hint_" ^ string_of_int (Random.int 0xFFFFFF) in
-  assert (set_hint hint "1");
-  assert (get_hint hint = Some "1");
-  assert (get_hint_boolean hint false = true);
+  check bool "set hint" true (set_hint hint "1");
+  check (option string) "get hint" (Some "1") (get_hint hint);
+  check bool "get hint bool" true (get_hint_boolean hint false);
   reset_hints ();
-  assert (get_hint hint = None);
-  quit ();
-  log_test "test_hints: ok"
+  check (option string) "hint reset" None (get_hint hint);
+  quit ()
 
 let test_version () =
-  log_test "test_version";
-  let maj, min, patch = get_version () in
-  log_test "  version: %d.%d.%d" maj min patch;
-  let rev = get_revision () in
-  log_test "  revision: %s" (if rev = "" then "(empty)" else rev);
-  assert (maj = 3);
-  log_test "test_version: ok"
+  let maj, _min, _patch = get_version () in
+  check int "version major" 3 maj;
+  let _ = get_revision () in
+  ()
 
 let test_log () =
-  log_test "test_log";
   log "test log message";
   log_message Log.category_application Log.priority_info "direct log_message";
   let p = log_get_priority Log.category_application in
   log_set_priority Log.category_application Log.priority_verbose;
-  assert (log_get_priority Log.category_application = Log.priority_verbose);
+  check int "log priority" Log.priority_verbose (log_get_priority Log.category_application);
   log_reset_priorities ();
-  assert (log_get_priority Log.category_application = p);
-  log_test "test_log: ok"
+  check int "log reset" p (log_get_priority Log.category_application)
 
 let test_error () =
-  log_test "test_error";
-  assert (get_error () = "");
+  check string "error empty" "" (get_error ());
   set_error "test error message";
-  assert (String.length (get_error ()) > 0);
+  check bool "error set" true (String.length (get_error ()) > 0);
   clear_error ();
-  assert (get_error () = "");
-  log_test "test_error: ok"
+  check string "error cleared" "" (get_error ())
 
 let test_window () =
-  log_test "test_window";
   init Init.(video + events);
   let w = Video.create_window "test" 320 240 Video.Window.none in
   let id = Video.get_window_id w in
-  assert (id <> 0l);
-  let w' = Video.get_window_from_id id in
-  assert (w' = Some w);
+  check bool "window id" true (id <> 0l);
+  (match Video.get_window_from_id id with
+   | Some w' ->
+       let id' = Video.get_window_id w' in
+       check int32 "window from id" id id'
+   | None -> Alcotest.fail "get_window_from_id returned None");
   let disp = Video.get_window_display w in
-  assert (disp <> 0l);
+  check bool "window display" true (Video.display_id_to_int32 disp <> 0l);
   Video.destroy_window w;
-  quit ();
-  log_test "test_window: ok"
+  quit ()
 
 let test_displays () =
-  log_test "test_displays";
   init Init.(video + events);
   let displays = Video.get_displays () in
-  assert (List.length displays > 0);
-  List.iteri (fun i did ->
-    (match Video.get_display_name did with
-     | Some name -> log_test "  display %d: %s" i name
-     | None -> ());
-    (match Video.get_display_bounds did with
-     | Some r -> log_test "    bounds: %d,%d %dx%d" r.x r.y r.w r.h
-     | None -> ()))
+  check bool "has displays" true (List.length displays > 0);
+  List.iteri (fun _i _did ->
+    match Video.get_display_name _did with
+    | Some _name -> ()
+    | None -> ())
     displays;
-  quit ();
-  log_test "test_displays: ok"
+  quit ()
 
 let () =
-  test_init ();
-  test_hints ();
-  test_version ();
-  test_log ();
-  test_error ();
-  test_window ();
-  test_displays ();
-  log_test "=== all tests passed ==="
+  run "SDL3"
+    [
+      ("init", [ test_case "init quit" `Quick test_init ]);
+      ("hints", [ test_case "hints" `Quick test_hints ]);
+      ("version", [ test_case "version" `Quick test_version ]);
+      ("log", [ test_case "log" `Quick test_log ]);
+      ("error", [ test_case "error" `Quick test_error ]);
+      ("window", [ test_case "window" `Quick test_window ]);
+      ("displays", [ test_case "displays" `Quick test_displays ]);
+    ]

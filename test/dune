@@ -1,4 +1,6 @@
 (env
+ ;; All tests assume headless/dummy drivers for reproducibility.
+ ;; SDL_VIDEO_DRIVER=dummy and SDL_AUDIO_DRIVER=dummy avoid real display/audio.
  (_ (env-vars (SDL_VIDEO_DRIVER dummy) (SDL_AUDIO_DRIVER dummy))))
 
 (test
@@ -7,4 +9,4 @@
 
 (test
  (name test_sdl3)
- (libraries sdl3))
+ (libraries sdl3 alcotest))

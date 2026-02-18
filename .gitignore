@@ -1,1 +1,6 @@
 _build/
+*.swp
+*~
+.merlin
+sdl3_cflags.sexp
+sdl3_libs.sexp

@@ -1,21 +1,24 @@
 (* Generate sdl3_cflags.sexp and sdl3_libs.sexp from pkg-config. *)
 #load "unix.cma"
+
 let split_flags s =
-  let len = String.length s in
-  let rec loop start i acc =
-    if i >= len then
-      if start < len then String.sub s start (len - start) :: acc else acc
-    else if s.[i] = ' ' || s.[i] = '\t' then
-      if start < i then
-        loop (i + 1) (i + 1) (String.sub s start (i - start) :: acc)
-      else
-        loop (i + 1) (i + 1) acc
-    else loop start (i + 1) acc
-  in
-  List.rev (loop 0 0 [])
+  let s' = String.map (fun c -> if c = '\t' then ' ' else c) s in
+  s' |> String.split_on_char ' ' |> List.map String.trim
+  |> List.filter (fun x -> x <> "")
+
+let escape_sexp s =
+  let b = Buffer.create (String.length s + 2) in
+  Buffer.add_char b '"';
+  String.iter (function
+    | '"' -> Buffer.add_string b "\\\""
+    | '\\' -> Buffer.add_string b "\\\\"
+    | c -> Buffer.add_char b c)
+    s;
+  Buffer.add_char b '"';
+  Buffer.contents b
 
 let sexp_of_strings flags =
-  "(" ^ String.concat " " (List.map (fun f -> "\"" ^ f ^ "\"") flags) ^ ")\n"
+  "(" ^ String.concat " " (List.map escape_sexp flags) ^ ")\n"
 
 let () =
   let cflags =

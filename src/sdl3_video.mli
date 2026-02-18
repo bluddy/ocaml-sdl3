@@ -4,7 +4,10 @@
 type rect = { x : int; y : int; w : int; h : int }
 
 (** {1 Display} *)
-type display_id = int32
+type display_id = Display of int32 [@@unboxed]
+
+val display_id_to_int32 : display_id -> int32
+(** For interop; 0 is invalid. *)
 
 val get_displays : unit -> display_id list
 (** [get_displays ()] returns the list of connected display IDs. *)
@@ -18,7 +21,7 @@ val get_display_bounds : display_id -> rect option
 (** {1 Window} *)
 type window
 
-type window_flags = int64
+type window_flags = Flags of int64 [@@unboxed]
 
 module Window : sig
   val none : window_flags

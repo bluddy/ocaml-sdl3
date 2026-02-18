@@ -1,4 +1,5 @@
-(** SDL3 constants. Values match SDL3 headers. *)
+(** SDL3 constants. Values match SDL3 headers.
+    Matched SDL version: 3.2.0+ (verify against your installed SDL). *)
 
 let sdl_init_audio = 0x00000010
 let sdl_init_video = 0x00000020
