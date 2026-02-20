@@ -1,7 +1,17 @@
 (** SDL3 video: displays and windows. *)
 
-(** {1 Rect} *)
-type rect = { x : int; y : int; w : int; h : int }
+(** {1 Rect}
+
+    Rect is a C-backed structure. Use [Rect.x], [Rect.y], [Rect.w], [Rect.h]
+    to read fields; no OCaml record allocation. *)
+type rect
+
+module Rect : sig
+  val x : rect -> int
+  val y : rect -> int
+  val w : rect -> int
+  val h : rect -> int
+end
 
 (** {1 Display} *)
 type display_id

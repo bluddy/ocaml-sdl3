@@ -62,11 +62,21 @@ let test_displays () =
   init Init.(video + events);
   let displays = Video.get_displays () in
   check bool "has displays" true (List.length displays > 0);
-  List.iteri (fun _i _did ->
-    match Video.get_display_name _did with
-    | Some _name -> ()
-    | None -> ())
+  List.iteri
+    (fun _i did ->
+      match Video.get_display_name did with
+      | Some _name -> ()
+      | None -> ())
     displays;
+  (match displays with
+  | did :: _ -> (
+      match Video.get_display_bounds did with
+      | Some r ->
+          let _w = Video.Rect.w r in
+          let _h = Video.Rect.h r in
+          ()
+      | None -> ())
+  | [] -> ());
   quit ()
 
 let test_events () =

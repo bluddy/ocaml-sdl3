@@ -102,6 +102,13 @@ module Video : sig
   val get_display_name : display_id -> string option
   val get_display_bounds : display_id -> rect option
 
+  module Rect : sig
+    val x : rect -> int
+    val y : rect -> int
+    val w : rect -> int
+    val h : rect -> int
+  end
+
   module Window : sig
     val ( + ) : window_flags -> window_flags -> window_flags
     val none : window_flags

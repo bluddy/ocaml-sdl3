@@ -7,17 +7,18 @@ type window = unit ptr
 
 let window_of_ptr (p : unit ptr) : window = p
 
-type rect = { x : int; y : int; w : int; h : int }
 type display_id = int32
 
 let display_id_to_int32 id = id
 
-let rect = structure "SDL_Rect"
-let rect_x = field rect "x" int
-let rect_y = field rect "y" int
-let rect_w = field rect "w" int
-let rect_h = field rect "h" int
-let () = seal rect
+type rect_tag
+let sdl_rect : rect_tag structure typ = structure "SDL_Rect"
+type rect = rect_tag structure
+let _rect_x = field sdl_rect "x" int
+let _rect_y = field sdl_rect "y" int
+let _rect_w = field sdl_rect "w" int
+let _rect_h = field sdl_rect "h" int
+let () = seal sdl_rect
 
 let sdl_free = foreign "SDL_free" (ptr void @-> returning void)
 
@@ -39,13 +40,21 @@ let get_display_name id =
   sdl_get_display_name (Unsigned.UInt32.of_int32 id)
 
 let sdl_get_display_bounds =
-  foreign "SDL_GetDisplayBounds" (uint32_t @-> ptr rect @-> returning bool)
+  foreign "SDL_GetDisplayBounds" (uint32_t @-> ptr sdl_rect @-> returning bool)
+
 let get_display_bounds id =
-  let r = make rect in
+  let r = make sdl_rect in
   if sdl_get_display_bounds (Unsigned.UInt32.of_int32 id) (addr r) then
-    Some { x = getf r rect_x; y = getf r rect_y; w = getf r rect_w; h = getf r rect_h }
+    Some r
   else
     None
+
+module Rect = struct
+  let x r = getf r _rect_x
+  let y r = getf r _rect_y
+  let w r = getf r _rect_w
+  let h r = getf r _rect_h
+end
 
 type window_flags = int64
 

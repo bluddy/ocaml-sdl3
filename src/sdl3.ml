@@ -106,6 +106,7 @@ module Video = struct
   let get_display_name = Sdl3_video.get_display_name
   let get_display_bounds = Sdl3_video.get_display_bounds
 
+  module Rect = Sdl3_video.Rect
   module Window = Sdl3_video.Window
   let create_window = Sdl3_video.create_window
   let destroy_window = Sdl3_video.destroy_window
