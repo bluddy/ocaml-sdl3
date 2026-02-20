@@ -93,21 +93,7 @@ let get_version () =
   (version_num_major v, version_num_minor v, version_num_micro v)
 
 (** {1 Events} *)
-module Event = struct
-  type t = Sdl3_events.t
-  let poll = Sdl3_events.poll_event
-  let wait = Sdl3_events.wait_event
-  let get_type = Sdl3_events.get_type
-  let get_window_from_event = Sdl3_events.get_window_from_event
-  let get_key = Sdl3_events.get_key
-  let get_mouse_motion = Sdl3_events.get_mouse_motion
-  let get_mouse_button = Sdl3_events.get_mouse_button
-  let get_mouse_wheel = Sdl3_events.get_mouse_wheel
-  let get_window_event = Sdl3_events.get_window_event
-  let get_drop = Sdl3_events.get_drop
-  module Type = Sdl3_events.Type
-  module Wheel = Sdl3_events.Wheel
-end
+module Event = Sdl3_events
 
 (** {1 Video} *)
 module Video = struct

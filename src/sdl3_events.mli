@@ -3,11 +3,12 @@
 type t
 (** An SDL event. Use [get_type] to dispatch and the [get_*] accessors for payload. *)
 
-val poll_event : unit -> t option
-(** [poll_event ()] returns the next event if available, [None] if the queue is empty. *)
+val poll : unit -> t option
+(** [poll ()] returns the next event if available, [None] if the queue is empty. *)
 
+val poll_event : unit -> t option
+val wait : unit -> t
 val wait_event : unit -> t
-(** [wait_event ()] blocks until an event is available. @raises Sdl_error on failure. *)
 
 val get_type : t -> int
 (** [get_type e] returns the event type (SDL_EventType). *)
@@ -15,23 +16,68 @@ val get_type : t -> int
 val get_window_from_event : t -> Sdl3_video.window option
 (** [get_window_from_event e] returns the window associated with the event, if any. *)
 
-(** Keyboard: timestamp, window_id, scancode, key, modifiers, down, repeat *)
-val get_key : t -> int * int32 * int * int * int * bool * bool
+(** {2 Event payload records} *)
 
-(** Mouse motion: timestamp, window_id, button_state, x, y, xrel, yrel *)
-val get_mouse_motion : t -> int * int32 * int * float * float * float * float
+type key_event = {
+  timestamp : int;
+  window_id : int32;
+  scancode : int;
+  key : int;
+  modifiers : int;
+  down : bool;
+  repeat : bool;
+}
+val get_key : t -> key_event
 
-(** Mouse button: timestamp, window_id, button, down, clicks, x, y *)
-val get_mouse_button : t -> int * int32 * int * bool * int * float * float
+type mouse_motion_event = {
+  timestamp : int;
+  window_id : int32;
+  button_state : int;
+  x : float;
+  y : float;
+  xrel : float;
+  yrel : float;
+}
+val get_mouse_motion : t -> mouse_motion_event
 
-(** Mouse wheel: timestamp, window_id, x, y, direction, mouse_x, mouse_y *)
-val get_mouse_wheel : t -> int * int32 * float * float * int * float * float
+type mouse_button_event = {
+  timestamp : int;
+  window_id : int32;
+  button : int;
+  down : bool;
+  clicks : int;
+  x : float;
+  y : float;
+}
+val get_mouse_button : t -> mouse_button_event
 
-(** Window: timestamp, window_id, data1, data2 *)
-val get_window_event : t -> int * int32 * int * int
+type mouse_wheel_event = {
+  timestamp : int;
+  window_id : int32;
+  x : float;
+  y : float;
+  direction : int;
+  mouse_x : float;
+  mouse_y : float;
+}
+val get_mouse_wheel : t -> mouse_wheel_event
 
-(** Drop: timestamp, window_id, x, y, data (file path or text, if any) *)
-val get_drop : t -> int * int32 * float * float * string option
+type window_event = {
+  timestamp : int;
+  window_id : int32;
+  data1 : int;
+  data2 : int;
+}
+val get_window_event : t -> window_event
+
+type drop_event = {
+  timestamp : int;
+  window_id : int32;
+  x : float;
+  y : float;
+  data : string option;
+}
+val get_drop : t -> drop_event
 
 module Type : sig
   val first : int

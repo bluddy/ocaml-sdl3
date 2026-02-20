@@ -149,10 +149,14 @@ let poll_event () =
   let ev = make () in
   if sdl_poll_event (addr ev) then Some ev else None
 
+let poll = poll_event
+
 let wait_event () =
   let ev = make () in
   if sdl_wait_event (addr ev) then ev
   else raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
+
+let wait = wait_event
 
 let get_type (ev : t) = Unsigned.UInt32.to_int (getf ev ev_type)
 
@@ -162,62 +166,129 @@ let get_window_from_event (ev : t) : Sdl3_video.window option =
 
 (* ---- Payload accessors ---- *)
 
+type key_event = {
+  timestamp : int;
+  window_id : int32;
+  scancode : int;
+  key : int;
+  modifiers : int;
+  down : bool;
+  repeat : bool;
+}
+
+type mouse_motion_event = {
+  timestamp : int;
+  window_id : int32;
+  button_state : int;
+  x : float;
+  y : float;
+  xrel : float;
+  yrel : float;
+}
+
+type mouse_button_event = {
+  timestamp : int;
+  window_id : int32;
+  button : int;
+  down : bool;
+  clicks : int;
+  x : float;
+  y : float;
+}
+
+type mouse_wheel_event = {
+  timestamp : int;
+  window_id : int32;
+  x : float;
+  y : float;
+  direction : int;
+  mouse_x : float;
+  mouse_y : float;
+}
+
+type window_event = {
+  timestamp : int;
+  window_id : int32;
+  data1 : int;
+  data2 : int;
+}
+
+type drop_event = {
+  timestamp : int;
+  window_id : int32;
+  x : float;
+  y : float;
+  data : string option;
+}
+
 let get_key (ev : t) =
   let k = getf ev key in
-  ( Unsigned.UInt64.to_int (getf k Keyboard_event.timestamp),
-    Unsigned.UInt32.to_int32 (getf k Keyboard_event.window_id),
-    Signed.Int32.to_int (getf k Keyboard_event.scancode),
-    Signed.Int32.to_int (getf k Keyboard_event.key),
-    Unsigned.UInt16.to_int (getf k Keyboard_event.keymod),
-    getf k Keyboard_event.down,
-    getf k Keyboard_event.repeat )
+  {
+    timestamp = Unsigned.UInt64.to_int (getf k Keyboard_event.timestamp);
+    window_id = Unsigned.UInt32.to_int32 (getf k Keyboard_event.window_id);
+    scancode = Signed.Int32.to_int (getf k Keyboard_event.scancode);
+    key = Signed.Int32.to_int (getf k Keyboard_event.key);
+    modifiers = Unsigned.UInt16.to_int (getf k Keyboard_event.keymod);
+    down = getf k Keyboard_event.down;
+    repeat = getf k Keyboard_event.repeat;
+  }
 
 let get_mouse_motion (ev : t) =
   let m = getf ev motion in
-  ( Unsigned.UInt64.to_int (getf m Mouse_motion_event.timestamp),
-    Unsigned.UInt32.to_int32 (getf m Mouse_motion_event.window_id),
-    Unsigned.UInt32.to_int (getf m Mouse_motion_event.state),
-    getf m Mouse_motion_event.x,
-    getf m Mouse_motion_event.y,
-    getf m Mouse_motion_event.xrel,
-    getf m Mouse_motion_event.yrel )
+  {
+    timestamp = Unsigned.UInt64.to_int (getf m Mouse_motion_event.timestamp);
+    window_id = Unsigned.UInt32.to_int32 (getf m Mouse_motion_event.window_id);
+    button_state = Unsigned.UInt32.to_int (getf m Mouse_motion_event.state);
+    x = getf m Mouse_motion_event.x;
+    y = getf m Mouse_motion_event.y;
+    xrel = getf m Mouse_motion_event.xrel;
+    yrel = getf m Mouse_motion_event.yrel;
+  }
 
 let get_mouse_button (ev : t) =
   let b = getf ev button in
-  ( Unsigned.UInt64.to_int (getf b Mouse_button_event.timestamp),
-    Unsigned.UInt32.to_int32 (getf b Mouse_button_event.window_id),
-    Unsigned.UInt8.to_int (getf b Mouse_button_event.button),
-    getf b Mouse_button_event.down,
-    Unsigned.UInt8.to_int (getf b Mouse_button_event.clicks),
-    getf b Mouse_button_event.x,
-    getf b Mouse_button_event.y )
+  {
+    timestamp = Unsigned.UInt64.to_int (getf b Mouse_button_event.timestamp);
+    window_id = Unsigned.UInt32.to_int32 (getf b Mouse_button_event.window_id);
+    button = Unsigned.UInt8.to_int (getf b Mouse_button_event.button);
+    down = getf b Mouse_button_event.down;
+    clicks = Unsigned.UInt8.to_int (getf b Mouse_button_event.clicks);
+    x = getf b Mouse_button_event.x;
+    y = getf b Mouse_button_event.y;
+  }
 
 let get_mouse_wheel (ev : t) =
   let w = getf ev wheel in
-  ( Unsigned.UInt64.to_int (getf w Mouse_wheel_event.timestamp),
-    Unsigned.UInt32.to_int32 (getf w Mouse_wheel_event.window_id),
-    getf w Mouse_wheel_event.x,
-    getf w Mouse_wheel_event.y,
-    Signed.Int32.to_int (getf w Mouse_wheel_event.direction),
-    getf w Mouse_wheel_event.mouse_x,
-    getf w Mouse_wheel_event.mouse_y )
+  {
+    timestamp = Unsigned.UInt64.to_int (getf w Mouse_wheel_event.timestamp);
+    window_id = Unsigned.UInt32.to_int32 (getf w Mouse_wheel_event.window_id);
+    x = getf w Mouse_wheel_event.x;
+    y = getf w Mouse_wheel_event.y;
+    direction = Signed.Int32.to_int (getf w Mouse_wheel_event.direction);
+    mouse_x = getf w Mouse_wheel_event.mouse_x;
+    mouse_y = getf w Mouse_wheel_event.mouse_y;
+  }
 
 let get_window_event (ev : t) =
   let w = getf ev window in
-  ( Unsigned.UInt64.to_int (getf w Window_event.timestamp),
-    Unsigned.UInt32.to_int32 (getf w Window_event.window_id),
-    Signed.Int32.to_int (getf w Window_event.data1),
-    Signed.Int32.to_int (getf w Window_event.data2) )
+  {
+    timestamp = Unsigned.UInt64.to_int (getf w Window_event.timestamp);
+    window_id = Unsigned.UInt32.to_int32 (getf w Window_event.window_id);
+    data1 = Signed.Int32.to_int (getf w Window_event.data1);
+    data2 = Signed.Int32.to_int (getf w Window_event.data2);
+  }
 
 let get_drop (ev : t) =
   let d = getf ev drop in
   let data_ptr = getf d Drop_event.data in
-  let data_str = if is_null data_ptr then None else Some (coerce (ptr char) string data_ptr) in
-  ( Unsigned.UInt64.to_int (getf d Drop_event.timestamp),
-    Unsigned.UInt32.to_int32 (getf d Drop_event.window_id),
-    getf d Drop_event.x,
-    getf d Drop_event.y,
-    data_str )
+  let data = if is_null data_ptr then None else Some (coerce (ptr char) string data_ptr) in
+  {
+    timestamp = Unsigned.UInt64.to_int (getf d Drop_event.timestamp);
+    window_id = Unsigned.UInt32.to_int32 (getf d Drop_event.window_id);
+    x = getf d Drop_event.x;
+    y = getf d Drop_event.y;
+    data;
+  }
 
 module Type = struct
   let first = sdl_event_first
