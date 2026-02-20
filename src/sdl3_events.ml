@@ -1,36 +1,223 @@
-(** SDL3 event queue. *)
+(** SDL3 event queue. Uses Ctypes to define SDL_Event layout and Foreign for SDL calls. *)
 
 open Ctypes
+open Foreign
 open Sdl3_consts
 
-(** Event buffer (128 bytes, opaque). Type is stored in first 4 bytes (little-endian). *)
-type t = bytes
+(* ---- Ctypes event structures (SDL3 layout) ---- *)
 
-let event_size = 128
+module Keyboard_event = struct
+  type t
+  let t : t structure typ = structure "SDL_KeyboardEvent"
+  let _type = field t "type" uint32_t
+  let _reserved = field t "reserved" uint32_t
+  let timestamp = field t "timestamp" uint64_t
+  let window_id = field t "windowID" uint32_t
+  let _which = field t "which" uint32_t
+  let scancode = field t "scancode" int32_t
+  let key = field t "key" int32_t
+  let keymod = field t "mod" uint16_t
+  let _raw = field t "raw" uint16_t
+  let down = field t "down" bool
+  let repeat = field t "repeat" bool
+  let () = seal t
+end
 
-external poll_event_stub : bytes -> bool = "sdl3_poll_event_stub"
-external wait_event_stub : bytes -> bool = "sdl3_wait_event_stub"
-external get_window_from_event_stub : bytes -> nativeint = "sdl3_get_window_from_event_stub"
+module Mouse_motion_event = struct
+  type t
+  let t : t structure typ = structure "SDL_MouseMotionEvent"
+  let _type = field t "type" uint32_t
+  let _reserved = field t "reserved" uint32_t
+  let timestamp = field t "timestamp" uint64_t
+  let window_id = field t "windowID" uint32_t
+  let _which = field t "which" uint32_t
+  let state = field t "state" uint32_t
+  let x = field t "x" float
+  let y = field t "y" float
+  let xrel = field t "xrel" float
+  let yrel = field t "yrel" float
+  let () = seal t
+end
 
-let get_type buf =
-  assert (Bytes.length buf >= 4);
-  let b0 = int_of_char (Bytes.get buf 0) in
-  let b1 = int_of_char (Bytes.get buf 1) in
-  let b2 = int_of_char (Bytes.get buf 2) in
-  let b3 = int_of_char (Bytes.get buf 3) in
-  b0 lor (b1 lsl 8) lor (b2 lsl 16) lor (b3 lsl 24)
+module Mouse_button_event = struct
+  type t
+  let t : t structure typ = structure "SDL_MouseButtonEvent"
+  let _type = field t "type" uint32_t
+  let _reserved = field t "reserved" uint32_t
+  let timestamp = field t "timestamp" uint64_t
+  let window_id = field t "windowID" uint32_t
+  let _which = field t "which" uint32_t
+  let button = field t "button" uint8_t
+  let down = field t "down" bool
+  let clicks = field t "clicks" uint8_t
+  let _padding = field t "padding" uint8_t
+  let x = field t "x" float
+  let y = field t "y" float
+  let () = seal t
+end
+
+module Mouse_wheel_event = struct
+  type t
+  let t : t structure typ = structure "SDL_MouseWheelEvent"
+  let _type = field t "type" uint32_t
+  let _reserved = field t "reserved" uint32_t
+  let timestamp = field t "timestamp" uint64_t
+  let window_id = field t "windowID" uint32_t
+  let _which = field t "which" uint32_t
+  let x = field t "x" float
+  let y = field t "y" float
+  let direction = field t "direction" int32_t
+  let mouse_x = field t "mouse_x" float
+  let mouse_y = field t "mouse_y" float
+  let _integer_x = field t "integer_x" int32_t
+  let _integer_y = field t "integer_y" int32_t
+  let () = seal t
+end
+
+module Window_event = struct
+  type t
+  let t : t structure typ = structure "SDL_WindowEvent"
+  let _type = field t "type" uint32_t
+  let _reserved = field t "reserved" uint32_t
+  let timestamp = field t "timestamp" uint64_t
+  let window_id = field t "windowID" uint32_t
+  let data1 = field t "data1" int32_t
+  let data2 = field t "data2" int32_t
+  let () = seal t
+end
+
+module Drop_event = struct
+  type t
+  let t : t structure typ = structure "SDL_DropEvent"
+  let _type = field t "type" uint32_t
+  let _reserved = field t "reserved" uint32_t
+  let timestamp = field t "timestamp" uint64_t
+  let window_id = field t "windowID" uint32_t
+  let x = field t "x" float
+  let y = field t "y" float
+  let _source = field t "source" (ptr char)
+  let data = field t "data" (ptr char)
+  let () = seal t
+end
+
+(* SDL_CommonEvent - shared header for all events *)
+module Common_event = struct
+  type t
+  let t : t structure typ = structure "SDL_CommonEvent"
+  let _type = field t "type" uint32_t
+  let _reserved = field t "reserved" uint32_t
+  let _timestamp = field t "timestamp" uint64_t
+  let () = seal t
+end
+
+external sdl_event_size : unit -> int = "sdl3_event_size"
+
+(* SDL_Event union - all event types overlay at the same address.
+   Pad to SDL_Event size so SDL_PollEvent doesn't overflow our buffer. *)
+type event_union
+let event_t : event_union union typ = union "SDL_Event"
+let ev_type = field event_t "type" uint32_t
+let _common = field event_t "common" Common_event.t
+let key = field event_t "key" Keyboard_event.t
+let motion = field event_t "motion" Mouse_motion_event.t
+let button = field event_t "button" Mouse_button_event.t
+let wheel = field event_t "wheel" Mouse_wheel_event.t
+let window = field event_t "window" Window_event.t
+let drop = field event_t "drop" Drop_event.t
+let _padding =
+  field event_t "padding"
+    (abstract ~name:"SDL_Event_padding" ~size:(sdl_event_size ()) ~alignment:1)
+let () = seal event_t
+
+(* ---- SDL bindings ---- *)
+
+let sdl_poll_event = foreign "SDL_PollEvent" (ptr event_t @-> returning bool)
+let sdl_wait_event =
+  foreign ~release_runtime_lock:true
+    "SDL_WaitEvent" (ptr event_t @-> returning bool)
+let sdl_get_window_from_event =
+  foreign "SDL_GetWindowFromEvent" (ptr event_t @-> returning (ptr void))
+
+(* ---- Public API ---- *)
+
+type t = event_union union
+
+let make () = make event_t
+let addr ev = addr ev
 
 let poll_event () =
-  let buf = Bytes.create event_size in
-  if poll_event_stub buf then Some buf else None
+  let ev = make () in
+  if sdl_poll_event (addr ev) then Some ev else None
 
 let wait_event () =
-  let buf = Bytes.create event_size in
-  if wait_event_stub buf then buf else raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
+  let ev = make () in
+  if sdl_wait_event (addr ev) then ev
+  else raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
-let get_window_from_event (buf : t) : Sdl3_video.window option =
-  let ptr = get_window_from_event_stub buf in
-  if ptr = 0n then None else Some (Sdl3_video.window_of_ptr (ptr_of_raw_address ptr))
+let get_type (ev : t) = Unsigned.UInt32.to_int (getf ev ev_type)
+
+let get_window_from_event (ev : t) : Sdl3_video.window option =
+  let w = sdl_get_window_from_event (addr ev) in
+  if is_null w then None else Some (Obj.magic w : Sdl3_video.window)
+
+(* ---- Payload accessors ---- *)
+
+let get_key (ev : t) =
+  let k = getf ev key in
+  ( Unsigned.UInt64.to_int (getf k Keyboard_event.timestamp),
+    Unsigned.UInt32.to_int32 (getf k Keyboard_event.window_id),
+    Signed.Int32.to_int (getf k Keyboard_event.scancode),
+    Signed.Int32.to_int (getf k Keyboard_event.key),
+    Unsigned.UInt16.to_int (getf k Keyboard_event.keymod),
+    getf k Keyboard_event.down,
+    getf k Keyboard_event.repeat )
+
+let get_mouse_motion (ev : t) =
+  let m = getf ev motion in
+  ( Unsigned.UInt64.to_int (getf m Mouse_motion_event.timestamp),
+    Unsigned.UInt32.to_int32 (getf m Mouse_motion_event.window_id),
+    Unsigned.UInt32.to_int (getf m Mouse_motion_event.state),
+    getf m Mouse_motion_event.x,
+    getf m Mouse_motion_event.y,
+    getf m Mouse_motion_event.xrel,
+    getf m Mouse_motion_event.yrel )
+
+let get_mouse_button (ev : t) =
+  let b = getf ev button in
+  ( Unsigned.UInt64.to_int (getf b Mouse_button_event.timestamp),
+    Unsigned.UInt32.to_int32 (getf b Mouse_button_event.window_id),
+    Unsigned.UInt8.to_int (getf b Mouse_button_event.button),
+    getf b Mouse_button_event.down,
+    Unsigned.UInt8.to_int (getf b Mouse_button_event.clicks),
+    getf b Mouse_button_event.x,
+    getf b Mouse_button_event.y )
+
+let get_mouse_wheel (ev : t) =
+  let w = getf ev wheel in
+  ( Unsigned.UInt64.to_int (getf w Mouse_wheel_event.timestamp),
+    Unsigned.UInt32.to_int32 (getf w Mouse_wheel_event.window_id),
+    getf w Mouse_wheel_event.x,
+    getf w Mouse_wheel_event.y,
+    Signed.Int32.to_int (getf w Mouse_wheel_event.direction),
+    getf w Mouse_wheel_event.mouse_x,
+    getf w Mouse_wheel_event.mouse_y )
+
+let get_window_event (ev : t) =
+  let w = getf ev window in
+  ( Unsigned.UInt64.to_int (getf w Window_event.timestamp),
+    Unsigned.UInt32.to_int32 (getf w Window_event.window_id),
+    Signed.Int32.to_int (getf w Window_event.data1),
+    Signed.Int32.to_int (getf w Window_event.data2) )
+
+let get_drop (ev : t) =
+  let d = getf ev drop in
+  let data_ptr = getf d Drop_event.data in
+  let data_str = if is_null data_ptr then None else Some (coerce (ptr char) string data_ptr) in
+  ( Unsigned.UInt64.to_int (getf d Drop_event.timestamp),
+    Unsigned.UInt32.to_int32 (getf d Drop_event.window_id),
+    getf d Drop_event.x,
+    getf d Drop_event.y,
+    data_str )
 
 module Type = struct
   let first = sdl_event_first
@@ -147,4 +334,9 @@ module Type = struct
   let render_device_lost = sdl_event_render_device_lost
   let user = sdl_event_user
   let last = sdl_event_last
+end
+
+module Wheel = struct
+  let normal = sdl_mousewheel_normal
+  let flipped = sdl_mousewheel_flipped
 end

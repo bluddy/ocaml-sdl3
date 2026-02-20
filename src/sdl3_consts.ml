@@ -177,3 +177,7 @@ let sdl_event_render_device_lost = 0x2002
 (* User *)
 let sdl_event_user = 0x8000
 let sdl_event_last = 0xffff
+
+(** Mouse wheel direction (SDL_MouseWheelDirection) *)
+let sdl_mousewheel_normal = 0
+let sdl_mousewheel_flipped = 1

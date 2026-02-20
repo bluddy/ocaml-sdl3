@@ -1,6 +1,7 @@
-(** SDL3 event queue. *)
+(** SDL3 event queue. Uses Ctypes to define SDL_Event layout; no C stubs for events. *)
 
-type t = bytes
+type t
+(** An SDL event. Use [get_type] to dispatch and the [get_*] accessors for payload. *)
 
 val poll_event : unit -> t option
 (** [poll_event ()] returns the next event if available, [None] if the queue is empty. *)
@@ -13,6 +14,24 @@ val get_type : t -> int
 
 val get_window_from_event : t -> Sdl3_video.window option
 (** [get_window_from_event e] returns the window associated with the event, if any. *)
+
+(** Keyboard: timestamp, window_id, scancode, key, modifiers, down, repeat *)
+val get_key : t -> int * int32 * int * int * int * bool * bool
+
+(** Mouse motion: timestamp, window_id, button_state, x, y, xrel, yrel *)
+val get_mouse_motion : t -> int * int32 * int * float * float * float * float
+
+(** Mouse button: timestamp, window_id, button, down, clicks, x, y *)
+val get_mouse_button : t -> int * int32 * int * bool * int * float * float
+
+(** Mouse wheel: timestamp, window_id, x, y, direction, mouse_x, mouse_y *)
+val get_mouse_wheel : t -> int * int32 * float * float * int * float * float
+
+(** Window: timestamp, window_id, data1, data2 *)
+val get_window_event : t -> int * int32 * int * int
+
+(** Drop: timestamp, window_id, x, y, data (file path or text, if any) *)
+val get_drop : t -> int * int32 * float * float * string option
 
 module Type : sig
   val first : int
@@ -129,4 +148,9 @@ module Type : sig
   val render_device_lost : int
   val user : int
   val last : int
+end
+
+module Wheel : sig
+  val normal : int
+  val flipped : int
 end

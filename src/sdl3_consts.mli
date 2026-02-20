@@ -162,3 +162,7 @@ val sdl_event_render_device_reset : int
 val sdl_event_render_device_lost : int
 val sdl_event_user : int
 val sdl_event_last : int
+
+(** Mouse wheel direction (SDL_MouseWheelDirection) *)
+val sdl_mousewheel_normal : int
+val sdl_mousewheel_flipped : int

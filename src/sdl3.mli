@@ -124,11 +124,17 @@ end
 
 (** {1 Events} *)
 module Event : sig
-  type t = bytes
+  type t
   val poll : unit -> t option
   val wait : unit -> t
   val get_type : t -> int
   val get_window_from_event : t -> Video.window option
+  val get_key : t -> int * int32 * int * int * int * bool * bool
+  val get_mouse_motion : t -> int * int32 * int * float * float * float * float
+  val get_mouse_button : t -> int * int32 * int * bool * int * float * float
+  val get_mouse_wheel : t -> int * int32 * float * float * int * float * float
+  val get_window_event : t -> int * int32 * int * int
+  val get_drop : t -> int * int32 * float * float * string option
   module Type : sig
     val first : int
     val quit : int
@@ -244,5 +250,9 @@ module Event : sig
     val render_device_lost : int
     val user : int
     val last : int
+  end
+  module Wheel : sig
+    val normal : int
+    val flipped : int
   end
 end
