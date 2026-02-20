@@ -41,7 +41,7 @@ let () =
   Printf.printf "SDL %d.%d.%d\n" maj min patch;
   let w = Video.create_window "Hi" 640 480 Video.Window.none in
   (* Event loop: quit on Event.Type.quit or Event.Type.window_close_requested.
-     Use per-field accessors (key_scancode, mouse_motion_x, etc.) for payload. *)
+     Use per-field accessors (Event.Key.scancode, Event.Mouse_motion.x, etc.) for payload. *)
   let rec loop () =
     match Event.poll () with
     | Some e when Event.get_type e = Event.Type.quit -> ()

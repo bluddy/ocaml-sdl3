@@ -223,51 +223,63 @@ module Field = struct
   let drop_data = F (drop, Drop_event.data)
 end
 
-(** Accessors returning OCaml types. Only the requested field is read; no allocation. *)
-let key_timestamp e = Unsigned.UInt64.to_int (Field.get e Field.key_timestamp)
-let key_window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.key_window_id)
-let key_scancode e = Signed.Int32.to_int (Field.get e Field.key_scancode)
-let key_key e = Signed.Int32.to_int (Field.get e Field.key_key)
-let key_modifiers e = Unsigned.UInt16.to_int (Field.get e Field.key_modifiers)
-let key_down e = Field.get e Field.key_down
-let key_repeat e = Field.get e Field.key_repeat
+(** Accessors by event kind. Only the requested field is read; no allocation. *)
+module Key = struct
+  let timestamp e = Unsigned.UInt64.to_int (Field.get e Field.key_timestamp)
+  let window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.key_window_id)
+  let scancode e = Signed.Int32.to_int (Field.get e Field.key_scancode)
+  let key e = Signed.Int32.to_int (Field.get e Field.key_key)
+  let modifiers e = Unsigned.UInt16.to_int (Field.get e Field.key_modifiers)
+  let down e = Field.get e Field.key_down
+  let repeat e = Field.get e Field.key_repeat
+end
 
-let mouse_motion_timestamp e = Unsigned.UInt64.to_int (Field.get e Field.mouse_motion_timestamp)
-let mouse_motion_window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.mouse_motion_window_id)
-let mouse_motion_state e = Unsigned.UInt32.to_int (Field.get e Field.mouse_motion_state)
-let mouse_motion_x e = Field.get e Field.mouse_motion_x
-let mouse_motion_y e = Field.get e Field.mouse_motion_y
-let mouse_motion_xrel e = Field.get e Field.mouse_motion_xrel
-let mouse_motion_yrel e = Field.get e Field.mouse_motion_yrel
+module Mouse_motion = struct
+  let timestamp e = Unsigned.UInt64.to_int (Field.get e Field.mouse_motion_timestamp)
+  let window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.mouse_motion_window_id)
+  let state e = Unsigned.UInt32.to_int (Field.get e Field.mouse_motion_state)
+  let x e = Field.get e Field.mouse_motion_x
+  let y e = Field.get e Field.mouse_motion_y
+  let xrel e = Field.get e Field.mouse_motion_xrel
+  let yrel e = Field.get e Field.mouse_motion_yrel
+end
 
-let mouse_button_timestamp e = Unsigned.UInt64.to_int (Field.get e Field.mouse_button_timestamp)
-let mouse_button_window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.mouse_button_window_id)
-let mouse_button_button e = Unsigned.UInt8.to_int (Field.get e Field.mouse_button_button)
-let mouse_button_down e = Field.get e Field.mouse_button_down
-let mouse_button_clicks e = Unsigned.UInt8.to_int (Field.get e Field.mouse_button_clicks)
-let mouse_button_x e = Field.get e Field.mouse_button_x
-let mouse_button_y e = Field.get e Field.mouse_button_y
+module Mouse_button = struct
+  let timestamp e = Unsigned.UInt64.to_int (Field.get e Field.mouse_button_timestamp)
+  let window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.mouse_button_window_id)
+  let button e = Unsigned.UInt8.to_int (Field.get e Field.mouse_button_button)
+  let down e = Field.get e Field.mouse_button_down
+  let clicks e = Unsigned.UInt8.to_int (Field.get e Field.mouse_button_clicks)
+  let x e = Field.get e Field.mouse_button_x
+  let y e = Field.get e Field.mouse_button_y
+end
 
-let mouse_wheel_timestamp e = Unsigned.UInt64.to_int (Field.get e Field.mouse_wheel_timestamp)
-let mouse_wheel_window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.mouse_wheel_window_id)
-let mouse_wheel_x e = Field.get e Field.mouse_wheel_x
-let mouse_wheel_y e = Field.get e Field.mouse_wheel_y
-let mouse_wheel_direction e = Signed.Int32.to_int (Field.get e Field.mouse_wheel_direction)
-let mouse_wheel_mouse_x e = Field.get e Field.mouse_wheel_mouse_x
-let mouse_wheel_mouse_y e = Field.get e Field.mouse_wheel_mouse_y
+module Mouse_wheel = struct
+  let timestamp e = Unsigned.UInt64.to_int (Field.get e Field.mouse_wheel_timestamp)
+  let window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.mouse_wheel_window_id)
+  let x e = Field.get e Field.mouse_wheel_x
+  let y e = Field.get e Field.mouse_wheel_y
+  let direction e = Signed.Int32.to_int (Field.get e Field.mouse_wheel_direction)
+  let mouse_x e = Field.get e Field.mouse_wheel_mouse_x
+  let mouse_y e = Field.get e Field.mouse_wheel_mouse_y
+end
 
-let window_timestamp e = Unsigned.UInt64.to_int (Field.get e Field.window_timestamp)
-let window_window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.window_window_id)
-let window_data1 e = Signed.Int32.to_int (Field.get e Field.window_data1)
-let window_data2 e = Signed.Int32.to_int (Field.get e Field.window_data2)
+module Window = struct
+  let timestamp e = Unsigned.UInt64.to_int (Field.get e Field.window_timestamp)
+  let window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.window_window_id)
+  let data1 e = Signed.Int32.to_int (Field.get e Field.window_data1)
+  let data2 e = Signed.Int32.to_int (Field.get e Field.window_data2)
+end
 
-let drop_timestamp e = Unsigned.UInt64.to_int (Field.get e Field.drop_timestamp)
-let drop_window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.drop_window_id)
-let drop_x e = Field.get e Field.drop_x
-let drop_y e = Field.get e Field.drop_y
-let drop_data e =
-  let p = Field.get e Field.drop_data in
-  if is_null p then None else Some (coerce (ptr char) string p)
+module Drop = struct
+  let timestamp e = Unsigned.UInt64.to_int (Field.get e Field.drop_timestamp)
+  let window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.drop_window_id)
+  let x e = Field.get e Field.drop_x
+  let y e = Field.get e Field.drop_y
+  let data e =
+    let p = Field.get e Field.drop_data in
+    if is_null p then None else Some (coerce (ptr char) string p)
+end
 
 module Type = struct
   let first = sdl_event_first
