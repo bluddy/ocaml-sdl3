@@ -164,131 +164,110 @@ let get_window_from_event (ev : t) : Sdl3_video.window option =
   let w = sdl_get_window_from_event (addr ev) in
   if is_null w then None else Some (Obj.magic w : Sdl3_video.window)
 
-(* ---- Payload accessors ---- *)
+(* ---- Per-field accessors (zero allocation, reads only requested field) ---- *)
 
-type key_event = {
-  timestamp : int;
-  window_id : int32;
-  scancode : int;
-  key : int;
-  modifiers : int;
-  down : bool;
-  repeat : bool;
-}
+module Field = struct
+  type _ field =
+    F : (('a structure, event_union union) Ctypes.field * ('b, 'a structure) Ctypes.field)
+        -> 'b field
 
-type mouse_motion_event = {
-  timestamp : int;
-  window_id : int32;
-  button_state : int;
-  x : float;
-  y : float;
-  xrel : float;
-  yrel : float;
-}
+  let get e (F (s, f)) = getf (getf e s) f
 
-type mouse_button_event = {
-  timestamp : int;
-  window_id : int32;
-  button : int;
-  down : bool;
-  clicks : int;
-  x : float;
-  y : float;
-}
+  (* Keyboard *)
+  let key_timestamp = F (key, Keyboard_event.timestamp)
+  let key_window_id = F (key, Keyboard_event.window_id)
+  let key_scancode = F (key, Keyboard_event.scancode)
+  let key_key = F (key, Keyboard_event.key)
+  let key_modifiers = F (key, Keyboard_event.keymod)
+  let key_down = F (key, Keyboard_event.down)
+  let key_repeat = F (key, Keyboard_event.repeat)
 
-type mouse_wheel_event = {
-  timestamp : int;
-  window_id : int32;
-  x : float;
-  y : float;
-  direction : int;
-  mouse_x : float;
-  mouse_y : float;
-}
+  (* Mouse motion *)
+  let mouse_motion_timestamp = F (motion, Mouse_motion_event.timestamp)
+  let mouse_motion_window_id = F (motion, Mouse_motion_event.window_id)
+  let mouse_motion_state = F (motion, Mouse_motion_event.state)
+  let mouse_motion_x = F (motion, Mouse_motion_event.x)
+  let mouse_motion_y = F (motion, Mouse_motion_event.y)
+  let mouse_motion_xrel = F (motion, Mouse_motion_event.xrel)
+  let mouse_motion_yrel = F (motion, Mouse_motion_event.yrel)
 
-type window_event = {
-  timestamp : int;
-  window_id : int32;
-  data1 : int;
-  data2 : int;
-}
+  (* Mouse button *)
+  let mouse_button_timestamp = F (button, Mouse_button_event.timestamp)
+  let mouse_button_window_id = F (button, Mouse_button_event.window_id)
+  let mouse_button_button = F (button, Mouse_button_event.button)
+  let mouse_button_down = F (button, Mouse_button_event.down)
+  let mouse_button_clicks = F (button, Mouse_button_event.clicks)
+  let mouse_button_x = F (button, Mouse_button_event.x)
+  let mouse_button_y = F (button, Mouse_button_event.y)
 
-type drop_event = {
-  timestamp : int;
-  window_id : int32;
-  x : float;
-  y : float;
-  data : string option;
-}
+  (* Mouse wheel *)
+  let mouse_wheel_timestamp = F (wheel, Mouse_wheel_event.timestamp)
+  let mouse_wheel_window_id = F (wheel, Mouse_wheel_event.window_id)
+  let mouse_wheel_x = F (wheel, Mouse_wheel_event.x)
+  let mouse_wheel_y = F (wheel, Mouse_wheel_event.y)
+  let mouse_wheel_direction = F (wheel, Mouse_wheel_event.direction)
+  let mouse_wheel_mouse_x = F (wheel, Mouse_wheel_event.mouse_x)
+  let mouse_wheel_mouse_y = F (wheel, Mouse_wheel_event.mouse_y)
 
-let get_key (ev : t) =
-  let k = getf ev key in
-  {
-    timestamp = Unsigned.UInt64.to_int (getf k Keyboard_event.timestamp);
-    window_id = Unsigned.UInt32.to_int32 (getf k Keyboard_event.window_id);
-    scancode = Signed.Int32.to_int (getf k Keyboard_event.scancode);
-    key = Signed.Int32.to_int (getf k Keyboard_event.key);
-    modifiers = Unsigned.UInt16.to_int (getf k Keyboard_event.keymod);
-    down = getf k Keyboard_event.down;
-    repeat = getf k Keyboard_event.repeat;
-  }
+  (* Window *)
+  let window_timestamp = F (window, Window_event.timestamp)
+  let window_window_id = F (window, Window_event.window_id)
+  let window_data1 = F (window, Window_event.data1)
+  let window_data2 = F (window, Window_event.data2)
 
-let get_mouse_motion (ev : t) =
-  let m = getf ev motion in
-  {
-    timestamp = Unsigned.UInt64.to_int (getf m Mouse_motion_event.timestamp);
-    window_id = Unsigned.UInt32.to_int32 (getf m Mouse_motion_event.window_id);
-    button_state = Unsigned.UInt32.to_int (getf m Mouse_motion_event.state);
-    x = getf m Mouse_motion_event.x;
-    y = getf m Mouse_motion_event.y;
-    xrel = getf m Mouse_motion_event.xrel;
-    yrel = getf m Mouse_motion_event.yrel;
-  }
+  (* Drop *)
+  let drop_timestamp = F (drop, Drop_event.timestamp)
+  let drop_window_id = F (drop, Drop_event.window_id)
+  let drop_x = F (drop, Drop_event.x)
+  let drop_y = F (drop, Drop_event.y)
+  let drop_data = F (drop, Drop_event.data)
+end
 
-let get_mouse_button (ev : t) =
-  let b = getf ev button in
-  {
-    timestamp = Unsigned.UInt64.to_int (getf b Mouse_button_event.timestamp);
-    window_id = Unsigned.UInt32.to_int32 (getf b Mouse_button_event.window_id);
-    button = Unsigned.UInt8.to_int (getf b Mouse_button_event.button);
-    down = getf b Mouse_button_event.down;
-    clicks = Unsigned.UInt8.to_int (getf b Mouse_button_event.clicks);
-    x = getf b Mouse_button_event.x;
-    y = getf b Mouse_button_event.y;
-  }
+(** Accessors returning OCaml types. Only the requested field is read; no allocation. *)
+let key_timestamp e = Unsigned.UInt64.to_int (Field.get e Field.key_timestamp)
+let key_window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.key_window_id)
+let key_scancode e = Signed.Int32.to_int (Field.get e Field.key_scancode)
+let key_key e = Signed.Int32.to_int (Field.get e Field.key_key)
+let key_modifiers e = Unsigned.UInt16.to_int (Field.get e Field.key_modifiers)
+let key_down e = Field.get e Field.key_down
+let key_repeat e = Field.get e Field.key_repeat
 
-let get_mouse_wheel (ev : t) =
-  let w = getf ev wheel in
-  {
-    timestamp = Unsigned.UInt64.to_int (getf w Mouse_wheel_event.timestamp);
-    window_id = Unsigned.UInt32.to_int32 (getf w Mouse_wheel_event.window_id);
-    x = getf w Mouse_wheel_event.x;
-    y = getf w Mouse_wheel_event.y;
-    direction = Signed.Int32.to_int (getf w Mouse_wheel_event.direction);
-    mouse_x = getf w Mouse_wheel_event.mouse_x;
-    mouse_y = getf w Mouse_wheel_event.mouse_y;
-  }
+let mouse_motion_timestamp e = Unsigned.UInt64.to_int (Field.get e Field.mouse_motion_timestamp)
+let mouse_motion_window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.mouse_motion_window_id)
+let mouse_motion_state e = Unsigned.UInt32.to_int (Field.get e Field.mouse_motion_state)
+let mouse_motion_x e = Field.get e Field.mouse_motion_x
+let mouse_motion_y e = Field.get e Field.mouse_motion_y
+let mouse_motion_xrel e = Field.get e Field.mouse_motion_xrel
+let mouse_motion_yrel e = Field.get e Field.mouse_motion_yrel
 
-let get_window_event (ev : t) =
-  let w = getf ev window in
-  {
-    timestamp = Unsigned.UInt64.to_int (getf w Window_event.timestamp);
-    window_id = Unsigned.UInt32.to_int32 (getf w Window_event.window_id);
-    data1 = Signed.Int32.to_int (getf w Window_event.data1);
-    data2 = Signed.Int32.to_int (getf w Window_event.data2);
-  }
+let mouse_button_timestamp e = Unsigned.UInt64.to_int (Field.get e Field.mouse_button_timestamp)
+let mouse_button_window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.mouse_button_window_id)
+let mouse_button_button e = Unsigned.UInt8.to_int (Field.get e Field.mouse_button_button)
+let mouse_button_down e = Field.get e Field.mouse_button_down
+let mouse_button_clicks e = Unsigned.UInt8.to_int (Field.get e Field.mouse_button_clicks)
+let mouse_button_x e = Field.get e Field.mouse_button_x
+let mouse_button_y e = Field.get e Field.mouse_button_y
 
-let get_drop (ev : t) =
-  let d = getf ev drop in
-  let data_ptr = getf d Drop_event.data in
-  let data = if is_null data_ptr then None else Some (coerce (ptr char) string data_ptr) in
-  {
-    timestamp = Unsigned.UInt64.to_int (getf d Drop_event.timestamp);
-    window_id = Unsigned.UInt32.to_int32 (getf d Drop_event.window_id);
-    x = getf d Drop_event.x;
-    y = getf d Drop_event.y;
-    data;
-  }
+let mouse_wheel_timestamp e = Unsigned.UInt64.to_int (Field.get e Field.mouse_wheel_timestamp)
+let mouse_wheel_window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.mouse_wheel_window_id)
+let mouse_wheel_x e = Field.get e Field.mouse_wheel_x
+let mouse_wheel_y e = Field.get e Field.mouse_wheel_y
+let mouse_wheel_direction e = Signed.Int32.to_int (Field.get e Field.mouse_wheel_direction)
+let mouse_wheel_mouse_x e = Field.get e Field.mouse_wheel_mouse_x
+let mouse_wheel_mouse_y e = Field.get e Field.mouse_wheel_mouse_y
+
+let window_timestamp e = Unsigned.UInt64.to_int (Field.get e Field.window_timestamp)
+let window_window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.window_window_id)
+let window_data1 e = Signed.Int32.to_int (Field.get e Field.window_data1)
+let window_data2 e = Signed.Int32.to_int (Field.get e Field.window_data2)
+
+let drop_timestamp e = Unsigned.UInt64.to_int (Field.get e Field.drop_timestamp)
+let drop_window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.drop_window_id)
+let drop_x e = Field.get e Field.drop_x
+let drop_y e = Field.get e Field.drop_y
+let drop_data e =
+  let p = Field.get e Field.drop_data in
+  if is_null p then None else Some (coerce (ptr char) string p)
 
 module Type = struct
   let first = sdl_event_first

@@ -1,7 +1,7 @@
 (** SDL3 event queue. Uses Ctypes to define SDL_Event layout; no C stubs for events. *)
 
 type t
-(** An SDL event. Use [get_type] to dispatch and the [get_*] accessors for payload. *)
+(** An SDL event. Use [get_type] to dispatch and per-field accessors for payload. *)
 
 val poll : unit -> t option
 (** [poll ()] returns the next event if available, [None] if the queue is empty. *)
@@ -16,68 +16,68 @@ val get_type : t -> int
 val get_window_from_event : t -> Sdl3_video.window option
 (** [get_window_from_event e] returns the window associated with the event, if any. *)
 
-(** {2 Event payload records} *)
+(** {2 Per-field accessors (zero allocation)}
 
-type key_event = {
-  timestamp : int;
-  window_id : int32;
-  scancode : int;
-  key : int;
-  modifiers : int;
-  down : bool;
-  repeat : bool;
-}
-val get_key : t -> key_event
+    Only reads and converts the requested field. No record allocation.
+    Use [get_type] to dispatch, then the relevant accessors for that event kind.
 
-type mouse_motion_event = {
-  timestamp : int;
-  window_id : int32;
-  button_state : int;
-  x : float;
-  y : float;
-  xrel : float;
-  yrel : float;
-}
-val get_mouse_motion : t -> mouse_motion_event
+    {[
+      match Event.get_type e with
+      | x when x = Event.Type.key_down ->
+          let scancode = Event.key_scancode e in
+          let repeat = Event.key_repeat e in
+          if not repeat then handle_key scancode
+      | _ -> ()
+    ]} *)
 
-type mouse_button_event = {
-  timestamp : int;
-  window_id : int32;
-  button : int;
-  down : bool;
-  clicks : int;
-  x : float;
-  y : float;
-}
-val get_mouse_button : t -> mouse_button_event
+(** Keyboard event fields *)
+val key_timestamp : t -> int
+val key_window_id : t -> int32
+val key_scancode : t -> int
+val key_key : t -> int
+val key_modifiers : t -> int
+val key_down : t -> bool
+val key_repeat : t -> bool
 
-type mouse_wheel_event = {
-  timestamp : int;
-  window_id : int32;
-  x : float;
-  y : float;
-  direction : int;
-  mouse_x : float;
-  mouse_y : float;
-}
-val get_mouse_wheel : t -> mouse_wheel_event
+(** Mouse motion event fields *)
+val mouse_motion_timestamp : t -> int
+val mouse_motion_window_id : t -> int32
+val mouse_motion_state : t -> int
+val mouse_motion_x : t -> float
+val mouse_motion_y : t -> float
+val mouse_motion_xrel : t -> float
+val mouse_motion_yrel : t -> float
 
-type window_event = {
-  timestamp : int;
-  window_id : int32;
-  data1 : int;
-  data2 : int;
-}
-val get_window_event : t -> window_event
+(** Mouse button event fields *)
+val mouse_button_timestamp : t -> int
+val mouse_button_window_id : t -> int32
+val mouse_button_button : t -> int
+val mouse_button_down : t -> bool
+val mouse_button_clicks : t -> int
+val mouse_button_x : t -> float
+val mouse_button_y : t -> float
 
-type drop_event = {
-  timestamp : int;
-  window_id : int32;
-  x : float;
-  y : float;
-  data : string option;
-}
-val get_drop : t -> drop_event
+(** Mouse wheel event fields *)
+val mouse_wheel_timestamp : t -> int
+val mouse_wheel_window_id : t -> int32
+val mouse_wheel_x : t -> float
+val mouse_wheel_y : t -> float
+val mouse_wheel_direction : t -> int
+val mouse_wheel_mouse_x : t -> float
+val mouse_wheel_mouse_y : t -> float
+
+(** Window event fields *)
+val window_timestamp : t -> int
+val window_window_id : t -> int32
+val window_data1 : t -> int
+val window_data2 : t -> int
+
+(** Drop event fields *)
+val drop_timestamp : t -> int
+val drop_window_id : t -> int32
+val drop_x : t -> float
+val drop_y : t -> float
+val drop_data : t -> string option
 
 module Type : sig
   val first : int
