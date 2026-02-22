@@ -25,13 +25,20 @@ let make_spec ~format ~channels ~freq =
   setf spec audio_spec_freq freq;
   spec
 
-(* Stream callback: userdata, stream, additional_amount, total_amount -> void *)
+(* Stream callback: userdata, stream, additional_amount, total_amount -> void.
+   C invokes from SDL audio thread: need runtime_lock and thread_registration *)
 let audio_stream_callback =
-  Foreign.funptr_opt (ptr void @-> ptr void @-> int @-> int @-> returning void)
+  Foreign.funptr_opt
+    ~runtime_lock:true
+    ~thread_registration:true
+    (ptr void @-> ptr void @-> int @-> int @-> returning void)
 
-(* Completion callback: (userdata, buf, buflen) -> void *)
+(* Completion callback: (userdata, buf, buflen) -> void. Same. *)
 let audio_stream_data_complete_callback =
-  Foreign.funptr_opt (ptr void @-> ptr void @-> int @-> returning void)
+  Foreign.funptr_opt
+    ~runtime_lock:true
+    ~thread_registration:true
+    (ptr void @-> ptr void @-> int @-> returning void)
 
 let sdl_open_audio_device_stream =
   foreign "SDL_OpenAudioDeviceStream"

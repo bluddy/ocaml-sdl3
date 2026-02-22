@@ -5,7 +5,25 @@
     Bigarray.c_layout len].
 
     Call [Sdl3.init Sdl3.Init.audio] before using audio.
-    Device starts paused; call [resume_audio_stream_device] to start playback. *)
+    Device starts paused; call [resume_audio_stream_device] to start playback.
+
+    {2 Default workflow: push with copy}
+
+    Prefer [put_audio_stream_data]: it copies your buffer into SDL's queue.
+    Allocate buffers, fill them, push; SDL owns the copy. Simple and safe.
+
+    {2 Avoid [on_complete]}
+
+    Do not use [on_complete] in [put_audio_stream_data_no_copy]. The OCaml
+    callback cannot be guaranteed to outlive SDL's async use of the buffer;
+    the funptr may be collected before SDL calls it. Use [put_audio_stream_data]
+    instead, or ensure the buffer stays alive until the stream is destroyed or
+    cleared (without relying on [on_complete]).
+
+    {2 Callbacks from C}
+
+    [set_audio_stream_get_callback] and [set_audio_stream_put_callback] run from
+    SDL's audio thread. Avoid allocating or blocking; use pre-allocated Bigarrays. *)
 
 type stream
 (** Opaque audio stream handle. *)
@@ -42,6 +60,8 @@ val open_audio_device_stream :
   stream
 
 val put_audio_stream_data : stream -> buffer -> pos:int -> len:int -> unit
+(** Preferred: copies buffer into stream. No lifetime concerns. *)
+
 
 val put_audio_stream_data_no_copy :
   stream ->
@@ -51,9 +71,9 @@ val put_audio_stream_data_no_copy :
   ?on_complete:(unit -> unit) ->
   unit ->
   unit
-(** Buffer must remain valid until SDL consumes it (or stream destroyed/cleared).
-    If [on_complete] is provided, it is called when SDL no longer needs the
-    buffer. *)
+(** Zero-copy push. Buffer must remain valid until SDL consumes it (stream
+    destroyed or cleared). {b Do not use [on_complete]}: the OCaml callback
+    may be collected before SDL invokes it. Prefer [put_audio_stream_data]. *)
 
 val get_audio_stream_data : stream -> buffer -> pos:int -> len:int -> int
 (** Returns bytes read. *)
