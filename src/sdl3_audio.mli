@@ -7,23 +7,25 @@
     Call [Sdl3.init Sdl3.Init.audio] before using audio.
     Device starts paused; call [resume_audio_stream_device] to start playback.
 
-    {2 Default workflow: push with copy}
+    {2 Push model (small to medium files)}
 
-    Prefer [put_audio_stream_data]: it copies your buffer into SDL's queue.
-    Allocate buffers, fill them, push; SDL owns the copy. Simple and safe.
+    For most purposes, use the push model: allocate buffers, fill them with
+    audio, call [put_audio_stream_data]. SDL copies the data. Simple and safe.
 
-    {2 Avoid [on_complete]}
+    {2 Pull model (streaming)}
 
-    Do not use [on_complete] in [put_audio_stream_data_no_copy]. The OCaml
-    callback cannot be guaranteed to outlive SDL's async use of the buffer;
-    the funptr may be collected before SDL calls it. Use [put_audio_stream_data]
-    instead, or ensure the buffer stays alive until the stream is destroyed or
-    cleared (without relying on [on_complete]).
+    For streaming large audio files, the pull model is necessary: use
+    [set_audio_stream_get_callback]. When SDL needs data, your callback runs;
+    read the next chunk and call [put_audio_stream_data] from inside. More
+    challenging: the callback runs from SDL's audio thread, so avoid allocating
+    or blocking; use pre-allocated Bigarrays.
 
-    {2 Callbacks from C}
+    {2 Zero-copy and [on_complete]}
 
-    [set_audio_stream_get_callback] and [set_audio_stream_put_callback] run from
-    SDL's audio thread. Avoid allocating or blocking; use pre-allocated Bigarrays. *)
+    [put_audio_stream_data_no_copy] avoids copying but the buffer must stay
+    valid until SDL consumes it. [on_complete] would signal when a buffer can be
+    reused, but the OCaml callback may be collected before SDL invokes it.
+    Prefer [put_audio_stream_data] or the pull model. *)
 
 type stream
 (** Opaque audio stream handle. *)
@@ -60,8 +62,7 @@ val open_audio_device_stream :
   stream
 
 val put_audio_stream_data : stream -> buffer -> pos:int -> len:int -> unit
-(** Preferred: copies buffer into stream. No lifetime concerns. *)
-
+(** Push model: copies buffer into stream. Use for small to medium files. *)
 
 val put_audio_stream_data_no_copy :
   stream ->
@@ -71,9 +72,8 @@ val put_audio_stream_data_no_copy :
   ?on_complete:(unit -> unit) ->
   unit ->
   unit
-(** Zero-copy push. Buffer must remain valid until SDL consumes it (stream
-    destroyed or cleared). {b Do not use [on_complete]}: the OCaml callback
-    may be collected before SDL invokes it. Prefer [put_audio_stream_data]. *)
+(** Zero-copy push. Buffer must remain valid until SDL consumes it. [on_complete]
+    may be collected before SDL invokes it; prefer [put_audio_stream_data]. *)
 
 val get_audio_stream_data : stream -> buffer -> pos:int -> len:int -> int
 (** Returns bytes read. *)
@@ -93,8 +93,8 @@ val set_audio_stream_get_callback :
   stream ->
   (stream -> additional_amount:int -> total_amount:int -> unit) option ->
   unit
-(** When data is requested (pull), callback runs. User typically calls
-    [put_audio_stream_data] from inside. *)
+(** Pull model: when SDL requests data, callback runs. Read next chunk and call
+    [put_audio_stream_data] from inside. Necessary for streaming large files. *)
 
 val set_audio_stream_put_callback :
   stream ->
