@@ -7,7 +7,7 @@
     Call [Sdl3.init Sdl3.Init.audio] before using audio.
     Device starts paused; call [resume_audio_stream_device] to start playback. *)
 
-type stream = private unit Ctypes.ptr
+type stream
 (** Opaque audio stream handle. *)
 
 type buffer = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
