@@ -166,3 +166,20 @@ val sdl_event_last : int
 (** Mouse wheel direction (SDL_MouseWheelDirection) *)
 val sdl_mousewheel_normal : int
 val sdl_mousewheel_flipped : int
+
+(** {1 Audio} *)
+val sdl_audio_device_default_playback : int32
+val sdl_audio_device_default_recording : int32
+
+val sdl_audio_unknown : int
+val sdl_audio_u8 : int
+val sdl_audio_s8 : int
+val sdl_audio_s16le : int
+val sdl_audio_s16be : int
+val sdl_audio_s32le : int
+val sdl_audio_s32be : int
+val sdl_audio_f32le : int
+val sdl_audio_f32be : int
+val sdl_audio_s16 : int
+val sdl_audio_s32 : int
+val sdl_audio_f32 : int

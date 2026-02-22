@@ -181,3 +181,22 @@ let sdl_event_last = 0xffff
 (** Mouse wheel direction (SDL_MouseWheelDirection) *)
 let sdl_mousewheel_normal = 0
 let sdl_mousewheel_flipped = 1
+
+(** {1 Audio}
+    Default device IDs (SDL_AudioDeviceID); pass to open_audio_device_stream *)
+let sdl_audio_device_default_playback = 0xFFFFFFFFl
+let sdl_audio_device_default_recording = 0xFFFFFFFEl
+
+(** Audio formats (SDL_AudioFormat) *)
+let sdl_audio_unknown = 0x0000
+let sdl_audio_u8 = 0x0008
+let sdl_audio_s8 = 0x8008
+let sdl_audio_s16le = 0x8010
+let sdl_audio_s16be = 0x9010
+let sdl_audio_s32le = 0x8020
+let sdl_audio_s32be = 0x9020
+let sdl_audio_f32le = 0x8120
+let sdl_audio_f32be = 0x9120
+let sdl_audio_s16 = 0x8010
+let sdl_audio_s32 = 0x8020
+let sdl_audio_f32 = 0x8120

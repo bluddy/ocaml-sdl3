@@ -131,3 +131,6 @@ end
 
 (** {1 Events} *)
 module Event : module type of Sdl3_events
+
+(** {1 Audio} *)
+module Audio : module type of Sdl3_audio

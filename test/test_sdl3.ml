@@ -89,6 +89,26 @@ let test_events () =
   quit ();
   check bool "event poll" true true
 
+let test_audio () =
+  init Init.(audio + video);
+  let stream =
+    Audio.open_audio_device_stream
+      ~device_id:Audio.Device.default_playback
+      ~format:Audio.Format.s16
+      ~channels:2
+      ~freq:44100
+      ()
+  in
+  check bool "audio stream paused" true (Audio.audio_stream_device_paused stream);
+  let buf =
+    Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.c_layout 4096
+  in
+  Audio.put_audio_stream_data stream buf ~pos:0 ~len:4096;
+  let avail = Audio.get_audio_stream_available stream in
+  check bool "stream has data" true (avail >= 0);
+  Audio.destroy_audio_stream stream;
+  quit ()
+
 let () =
   run "SDL3"
     [
@@ -100,4 +120,5 @@ let () =
       ("window", [ test_case "window" `Quick test_window ]);
       ("displays", [ test_case "displays" `Quick test_displays ]);
       ("events", [ test_case "events" `Quick test_events ]);
+      ("audio", [ test_case "audio" `Quick test_audio ]);
     ]

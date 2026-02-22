@@ -6,6 +6,7 @@
  (name sdl3)
  (depends
   (ocaml (>= 4.08.0))
+  bigarray-compat
   (ctypes (>= 0.21.1))
   (ctypes-foreign (>= 0.21.1))
   (alcotest :with-test)))

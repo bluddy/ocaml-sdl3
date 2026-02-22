@@ -95,6 +95,9 @@ let get_version () =
 (** {1 Events} *)
 module Event = Sdl3_events
 
+(** {1 Audio} *)
+module Audio = Sdl3_audio
+
 (** {1 Video} *)
 module Video = struct
   type rect = Sdl3_video.rect
