@@ -3,7 +3,7 @@ open Foreign
 open Sdl3_consts
 
 (** Opaque surface pointer. *)
-type surface = Sdl3_surface_internal.surface
+type surface = unit ptr
 
 module Pixel_format = struct
   let rgba8888 = sdl_pixelformat_rgba8888
@@ -25,10 +25,17 @@ let () = seal sdl_surface
 let sdl_create_surface =
   foreign "SDL_CreateSurface" (int @-> int @-> uint32_t @-> returning (ptr void))
 
+let sdl_destroy_surface = foreign "SDL_DestroySurface" (ptr void @-> returning void)
+
+let adopt_ s = Gc.finalise sdl_destroy_surface s
+
+let of_ptr_ p = (p : surface)
+let to_ptr_ s = (s : unit ptr)
+
 let create_surface w h format =
   let p = sdl_create_surface w h (Unsigned.UInt32.of_int format) in
   if is_null p then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  Sdl3_surface_internal.adopt p;
+  adopt_ p;
   p
 
 let sdl_create_surface_from =
@@ -43,7 +50,7 @@ let create_surface_from w h format pixels pitch =
   in
   let p = sdl_create_surface_from w h (Unsigned.UInt32.of_int format) pix_ptr pitch in
   if is_null p then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  Sdl3_surface_internal.adopt p;
+  adopt_ p;
   p
 
 let sdl_load_bmp = foreign "SDL_LoadBMP" (string @-> returning (ptr void))
@@ -51,7 +58,7 @@ let sdl_load_bmp = foreign "SDL_LoadBMP" (string @-> returning (ptr void))
 let load_bmp path =
   let p = sdl_load_bmp path in
   if is_null p then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  Sdl3_surface_internal.adopt p;
+  adopt_ p;
   p
 
 let sdl_lock_surface = foreign "SDL_LockSurface" (ptr void @-> returning bool)

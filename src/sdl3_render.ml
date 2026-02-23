@@ -227,13 +227,10 @@ let create_texture renderer format access w h =
 let sdl_create_texture_from_surface =
   foreign "SDL_CreateTextureFromSurface" (ptr void @-> ptr void @-> returning (ptr void))
 
-let create_texture_from_surface (renderer : renderer) (surface : Sdl3_surface.surface) =
-  let p =
-    sdl_create_texture_from_surface renderer
-      (Sdl3_surface_internal.to_ptr (Obj.magic surface : Sdl3_surface_internal.surface))
-  in
-  if is_null p then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  p
+let create_texture_from_surface (renderer : renderer) (surface: surface) =
+  let t = sdl_create_texture_from_surface renderer (Sdl3_surface.to_ptr_ surface) in
+  if is_null t then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
+  t
 
 let destroy_texture = foreign "SDL_DestroyTexture" (ptr void @-> returning void)
 
@@ -486,8 +483,9 @@ let render_read_pixels renderer ?rect () =
   in
   let s = sdl_render_read_pixels renderer r in
   if is_null s then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  Sdl3_surface_internal.adopt s;
-  (Obj.magic Sdl3_surface_internal.of_ptr s : Sdl3_surface.surface)
+  let s = Sdl3_surface.of_ptr_ s in
+  Sdl3_surface.adopt_ s;
+  s
 
 (* --- VSync --- *)
 let sdl_set_render_vsync = foreign "SDL_SetRenderVSync" (ptr void @-> int @-> returning bool)

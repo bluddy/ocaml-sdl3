@@ -40,3 +40,11 @@ module Surface : sig
   val pitch : surface -> int
   val format : surface -> int
 end
+
+(** Internal *)
+
+val adopt_: surface -> unit
+
+val to_ptr_: surface -> unit Ctypes.ptr
+val of_ptr_: unit Ctypes.ptr -> surface
+
