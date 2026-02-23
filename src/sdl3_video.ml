@@ -54,6 +54,14 @@ module Rect = struct
   let y r = getf r _rect_y
   let w r = getf r _rect_w
   let h r = getf r _rect_h
+
+  let make x y w h =
+    let r = make sdl_rect in
+    setf r _rect_x x;
+    setf r _rect_y y;
+    setf r _rect_w w;
+    setf r _rect_h h;
+    r
 end
 
 type window_flags = int64

@@ -201,3 +201,43 @@ let sdl_audio_f32be = 0x9120
 let sdl_audio_s16 = 0x8010
 let sdl_audio_s32 = 0x8020
 let sdl_audio_f32 = 0x8120
+
+(** {1 Pixel formats} (SDL_PixelFormat, Uint32) *)
+let sdl_pixelformat_unknown = 0
+let sdl_pixelformat_rgba8888 = 0x16462004
+let sdl_pixelformat_argb8888 = 0x16362004
+let sdl_pixelformat_rgb24 = 0x17101803
+let sdl_pixelformat_bgr24 = 0x17401803
+let sdl_pixelformat_rgb565 = 0x15151002
+let sdl_pixelformat_bgr565 = 0x15551002
+
+(** {1 Texture access} (SDL_TextureAccess) *)
+let sdl_textureaccess_static = 0
+let sdl_textureaccess_streaming = 1
+let sdl_textureaccess_target = 2
+
+(** {1 Blend modes} (SDL_BlendMode, Uint32) *)
+let sdl_blendmode_none = 0x00000000
+let sdl_blendmode_blend = 0x00000001
+let sdl_blendmode_blend_premultiplied = 0x00000010
+let sdl_blendmode_add = 0x00000002
+let sdl_blendmode_add_premultiplied = 0x00000020
+let sdl_blendmode_mod = 0x00000004
+let sdl_blendmode_mul = 0x00000008
+let sdl_blendmode_invalid = 0x7FFFFFFF
+
+(** {1 Scale modes} (SDL_ScaleMode) *)
+let sdl_scalemode_invalid = -1
+let sdl_scalemode_nearest = 0
+let sdl_scalemode_linear = 1
+let sdl_scalemode_pixelart = 2
+
+(** {1 Flip modes} (SDL_FlipMode) *)
+let sdl_flip_none = 0
+let sdl_flip_horizontal = 0x1
+let sdl_flip_vertical = 0x2
+let sdl_flip_horizontal_and_vertical = 0x3
+
+(** {1 Renderer names} (strings) *)
+let sdl_software_renderer = "software"
+let sdl_gpu_renderer = "gpu"

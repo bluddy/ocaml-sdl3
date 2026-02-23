@@ -184,3 +184,43 @@ val sdl_audio_f32be : int
 val sdl_audio_s16 : int
 val sdl_audio_s32 : int
 val sdl_audio_f32 : int
+
+(** {1 Pixel formats} (SDL_PixelFormat) *)
+val sdl_pixelformat_unknown : int
+val sdl_pixelformat_rgba8888 : int
+val sdl_pixelformat_argb8888 : int
+val sdl_pixelformat_rgb24 : int
+val sdl_pixelformat_bgr24 : int
+val sdl_pixelformat_rgb565 : int
+val sdl_pixelformat_bgr565 : int
+
+(** {1 Texture access} (SDL_TextureAccess) *)
+val sdl_textureaccess_static : int
+val sdl_textureaccess_streaming : int
+val sdl_textureaccess_target : int
+
+(** {1 Blend modes} (SDL_BlendMode) *)
+val sdl_blendmode_none : int
+val sdl_blendmode_blend : int
+val sdl_blendmode_blend_premultiplied : int
+val sdl_blendmode_add : int
+val sdl_blendmode_add_premultiplied : int
+val sdl_blendmode_mod : int
+val sdl_blendmode_mul : int
+val sdl_blendmode_invalid : int
+
+(** {1 Scale modes} (SDL_ScaleMode) *)
+val sdl_scalemode_invalid : int
+val sdl_scalemode_nearest : int
+val sdl_scalemode_linear : int
+val sdl_scalemode_pixelart : int
+
+(** {1 Flip modes} (SDL_FlipMode) *)
+val sdl_flip_none : int
+val sdl_flip_horizontal : int
+val sdl_flip_vertical : int
+val sdl_flip_horizontal_and_vertical : int
+
+(** {1 Renderer names} *)
+val sdl_software_renderer : string
+val sdl_gpu_renderer : string

@@ -11,6 +11,7 @@ module Rect : sig
   val y : rect -> int
   val w : rect -> int
   val h : rect -> int
+  val make : int -> int -> int -> int -> rect
 end
 
 (** {1 Display} *)

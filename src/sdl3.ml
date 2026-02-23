@@ -97,6 +97,8 @@ module Event = Sdl3_events
 
 (** {1 Audio} *)
 module Audio = Sdl3_audio
+module Surface = Sdl3_surface
+module Render = Sdl3_render
 
 (** {1 Video} *)
 module Video = struct
