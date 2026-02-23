@@ -152,10 +152,18 @@ val get_render_vsync : renderer -> int
 val set_default_texture_scale_mode : renderer -> int -> unit
 val get_default_texture_scale_mode : renderer -> int
 
-(** {2 Texture lock} *)
-val lock_texture :
-  texture -> ?rect:Sdl3_video.rect -> unit -> unit Ctypes.ptr * int
-val unlock_texture : texture -> unit
+(** {2 Texture lock}
+
+    Use [with_locked_texture] to access texture pixels as a Bigarray. The
+    callback receives [(pixels, pitch)] where [pixels] is a 1D byte buffer
+    (size = pitch * height) and [pitch] is bytes per row. The buffer is
+    valid only during the callback; do not use it after the callback returns. *)
+val with_locked_texture :
+  texture ->
+  ?rect:Sdl3_video.rect ->
+  ((int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t * int ->
+   unit) ->
+  unit
 
 (** {2 Texture properties} *)
 val get_texture_size : texture -> float * float

@@ -518,25 +518,6 @@ let get_default_texture_scale_mode renderer =
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   !@ p
 
-(* --- LockTexture / UnlockTexture --- *)
-let sdl_lock_texture =
-  foreign "SDL_LockTexture"
-    (ptr void @-> ptr void @-> ptr (ptr void) @-> ptr int @-> returning bool)
-
-let lock_texture texture ?rect () =
-  let r =
-    match rect with
-    | None -> from_voidp void null
-    | Some r -> to_voidp (addr r)
-  in
-  let ppix = allocate (ptr void) (from_voidp void null) in
-  let ppitch = allocate int 0 in
-  if not (sdl_lock_texture texture r ppix ppitch)
-  then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  (!@ ppix, !@ ppitch)
-
-let unlock_texture = foreign "SDL_UnlockTexture" (ptr void @-> returning void)
-
 (* --- GetTextureSize --- *)
 let sdl_get_texture_size =
   foreign "SDL_GetTextureSize" (ptr void @-> ptr float @-> ptr float @-> returning bool)
@@ -547,6 +528,46 @@ let get_texture_size texture =
   if not (sdl_get_texture_size texture pw ph)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   (!@ pw, !@ ph)
+
+(* --- LockTexture / UnlockTexture --- *)
+let sdl_lock_texture =
+  foreign "SDL_LockTexture"
+    (ptr void @-> ptr void @-> ptr (ptr void) @-> ptr int @-> returning bool)
+
+let sdl3_ptr_addr = foreign "sdl3_ptr_addr" (ptr void @-> returning int64_t)
+
+external sdl3_bigarray_of_ptr : nativeint -> int -> (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+  = "sdl3_bigarray_of_ptr"
+
+let with_locked_texture texture ?rect f =
+  let r =
+    match rect with
+    | None -> coerce (ptr void) (ptr void) null
+    | Some r -> to_voidp (addr r)
+  in
+  let ppix = allocate (ptr void) (from_voidp void null) in
+  let ppitch = allocate int 0 in
+  if not (sdl_lock_texture texture r ppix ppitch)
+  then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
+  let pix_ptr = !@ ppix in
+  let pitch = !@ ppitch in
+  let height =
+    match rect with
+    | Some r -> Sdl3_video.Rect.h r
+    | None ->
+        let _w, h = get_texture_size texture in
+        int_of_float h
+  in
+  let size = pitch * height in
+  let unlock_texture = foreign "SDL_UnlockTexture" (ptr void @-> returning void) in
+  let addr = Int64.to_nativeint (Signed.Int64.to_int64 (sdl3_ptr_addr pix_ptr)) in
+  let pixels = sdl3_bigarray_of_ptr addr size in
+  try
+    f (pixels, pitch);
+    unlock_texture texture
+  with e ->
+    unlock_texture texture;
+    raise e
 
 (* --- SetTextureBlendMode / GetTextureBlendMode --- *)
 let sdl_set_texture_blend_mode =
