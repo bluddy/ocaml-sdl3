@@ -15,7 +15,7 @@ module Rect : sig
   val y : rect -> int
   val w : rect -> int
   val h : rect -> int
-  val make : int -> int -> int -> int -> rect
+  val make : x:int -> y:int -> w:int -> h:int -> rect
 end
 
 (** {1 Display} *)
@@ -53,8 +53,8 @@ module Window : sig
   val ( + ) : window_flags -> window_flags -> window_flags
 end
 
-val create_window : string -> int -> int -> window_flags -> window
-(** [create_window title w h flags] creates a window. Raises [Sdl_error] on failure. *)
+val create_window : title:string -> width:int -> height:int -> flags:window_flags -> window
+(** [create_window ~title ~width ~height ~flags] creates a window. Raises [Sdl_error] on failure. *)
 
 val destroy_window : window -> unit
 

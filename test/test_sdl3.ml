@@ -28,13 +28,17 @@ let test_version () =
   ()
 
 let test_log () =
+  let log_priority_testable =
+    Alcotest.testable (fun fmt _ -> Format.pp_print_string fmt "log_priority") ( = )
+  in
   log "test log message";
   log_message Log.category_application Log.priority_info "direct log_message";
   let p = log_get_priority Log.category_application in
   log_set_priority Log.category_application Log.priority_verbose;
-  check int "log priority" Log.priority_verbose (log_get_priority Log.category_application);
+  check log_priority_testable "log priority" Log.priority_verbose
+    (log_get_priority Log.category_application);
   log_reset_priorities ();
-  check int "log reset" p (log_get_priority Log.category_application)
+  check log_priority_testable "log reset" p (log_get_priority Log.category_application)
 
 let test_error () =
   check string "error empty" "" (get_error ());
@@ -45,7 +49,7 @@ let test_error () =
 
 let test_window () =
   init Init.(video + events);
-  let w = Video.create_window "test" 320 240 Video.Window.none in
+  let w = Video.create_window ~title:"test" ~width:320 ~height:240 ~flags:Video.Window.none in
   let id = Video.get_window_id w in
   check bool "window id" true (id <> 0l);
   (match Video.get_window_from_id id with
@@ -81,7 +85,9 @@ let test_displays () =
 
 let test_events () =
   init Init.(video + events);
-  let w = Video.create_window "events_test" 100 100 Video.Window.none in
+  let w =
+    Video.create_window ~title:"events_test" ~width:100 ~height:100 ~flags:Video.Window.none
+  in
   for _ = 1 to 3 do
     ignore (Event.poll ())
   done;
@@ -135,8 +141,11 @@ let test_audio_pull () =
 
 let test_render_smoke () =
   init Init.(video + events);
-  let w, r = Render.create_window_and_renderer "render_test" 320 240 Video.Window.none in
-  Render.set_draw_color r 255 0 0 255;
+  let w, r =
+    Render.create_window_and_renderer ~title:"render_test" ~width:320 ~height:240
+      Video.Window.none
+  in
+  Render.set_draw_color r ~r:255 ~g:0 ~b:0 ~a:255;
   Render.render_clear r;
   Render.render_present r;
   Render.destroy_renderer r;
@@ -145,8 +154,12 @@ let test_render_smoke () =
 
 let test_texture_from_surface () =
   init Init.(video + events);
-  let w, r = Render.create_window_and_renderer "tex_test" 64 64 Video.Window.none in
-  let surf = Surface.create_surface 32 32 Surface.Pixel_format.rgba8888 in
+  let w, r =
+    Render.create_window_and_renderer ~title:"tex_test" ~width:64 ~height:64 Video.Window.none
+  in
+  let surf =
+    Surface.create_surface ~width:32 ~height:32 ~format:Surface.Pixel_format.rgba8888
+  in
   let tex = Render.create_texture_from_surface r surf in
   Render.render_texture r tex ();
   Render.render_present r;

@@ -58,7 +58,7 @@ module Rect = struct
   let w r = getf r _rect_w
   let h r = getf r _rect_h
 
-  let make x y w h =
+  let make ~x ~y ~w ~h =
     let r = make sdl_rect in
     setf r _rect_x x;
     setf r _rect_y y;
@@ -84,8 +84,8 @@ end
 let sdl_create_window =
   foreign "SDL_CreateWindow" (string @-> int @-> int @-> uint64_t @-> returning (ptr void))
 
-let create_window title w h flags =
-  let wptr = sdl_create_window title w h (Unsigned.UInt64.of_int64 flags) in
+let create_window ~title ~width ~height ~flags =
+  let wptr = sdl_create_window title width height (Unsigned.UInt64.of_int64 flags) in
   if is_null wptr then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   wptr
 

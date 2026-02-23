@@ -8,16 +8,16 @@ module Pixel_format : sig
   val rgb565 : int
 end
 
-val create_surface : int -> int -> int -> surface
-(** [create_surface w h format] allocates a new surface. Pixels are zeroed.
+val create_surface : width:int -> height:int -> format:int -> surface
+(** [create_surface ~width ~height ~format] allocates a new surface. Pixels are zeroed.
     [format] is e.g. [Sdl3_consts.sdl_pixelformat_rgba8888]. *)
 
 val create_surface_from :
-  int ->
-  int ->
-  int ->
-  (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t option ->
-  int ->
+  width:int ->
+  height:int ->
+  format:int ->
+  pixels:(char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t option ->
+  pitch:int ->
   surface
 (** [create_surface_from w h format pixels pitch] wraps existing pixel data.
     No copy is made; [pixels] must outlive the surface. Surfaces are freed

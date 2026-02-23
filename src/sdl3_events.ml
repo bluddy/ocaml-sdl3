@@ -158,7 +158,354 @@ let wait_event () =
 
 let wait = wait_event
 
-let get_type (ev : t) = Unsigned.UInt32.to_int (getf ev ev_type)
+let get_type_raw (ev : t) = Unsigned.UInt32.to_int (getf ev ev_type)
+
+type event_type =
+  | Quit
+  | Terminating
+  | Low_memory
+  | Will_enter_background
+  | Did_enter_background
+  | Will_enter_foreground
+  | Did_enter_foreground
+  | Locale_changed
+  | System_theme_changed
+  | Display_orientation
+  | Display_added
+  | Display_removed
+  | Display_moved
+  | Display_desktop_mode_changed
+  | Display_current_mode_changed
+  | Display_content_scale_changed
+  | Display_usable_bounds_changed
+  | Window_shown
+  | Window_hidden
+  | Window_exposed
+  | Window_moved
+  | Window_resized
+  | Window_pixel_size_changed
+  | Window_metal_view_resized
+  | Window_minimized
+  | Window_maximized
+  | Window_restored
+  | Window_mouse_enter
+  | Window_mouse_leave
+  | Window_focus_gained
+  | Window_focus_lost
+  | Window_close_requested
+  | Window_hit_test
+  | Window_iccprof_changed
+  | Window_display_changed
+  | Window_display_scale_changed
+  | Window_safe_area_changed
+  | Window_occluded
+  | Window_enter_fullscreen
+  | Window_leave_fullscreen
+  | Window_destroyed
+  | Window_hdr_state_changed
+  | Key_down
+  | Key_up
+  | Text_editing
+  | Text_input
+  | Keymap_changed
+  | Keyboard_added
+  | Keyboard_removed
+  | Text_editing_candidates
+  | Screen_keyboard_shown
+  | Screen_keyboard_hidden
+  | Mouse_motion
+  | Mouse_button_down
+  | Mouse_button_up
+  | Mouse_wheel
+  | Mouse_added
+  | Mouse_removed
+  | Joystick_axis_motion
+  | Joystick_ball_motion
+  | Joystick_hat_motion
+  | Joystick_button_down
+  | Joystick_button_up
+  | Joystick_added
+  | Joystick_removed
+  | Joystick_battery_updated
+  | Joystick_update_complete
+  | Gamepad_axis_motion
+  | Gamepad_button_down
+  | Gamepad_button_up
+  | Gamepad_added
+  | Gamepad_removed
+  | Gamepad_remapped
+  | Gamepad_touchpad_down
+  | Gamepad_touchpad_motion
+  | Gamepad_touchpad_up
+  | Gamepad_sensor_update
+  | Gamepad_update_complete
+  | Gamepad_steam_handle_updated
+  | Finger_down
+  | Finger_up
+  | Finger_motion
+  | Finger_canceled
+  | Pinch_begin
+  | Pinch_update
+  | Pinch_end
+  | Clipboard_update
+  | Drop_file
+  | Drop_text
+  | Drop_begin
+  | Drop_complete
+  | Drop_position
+  | Audio_device_added
+  | Audio_device_removed
+  | Audio_device_format_changed
+  | Sensor_update
+  | Pen_proximity_in
+  | Pen_proximity_out
+  | Pen_down
+  | Pen_up
+  | Pen_button_down
+  | Pen_button_up
+  | Pen_motion
+  | Pen_axis
+  | Camera_device_added
+  | Camera_device_removed
+  | Camera_device_approved
+  | Camera_device_denied
+  | Render_targets_reset
+  | Render_device_reset
+  | Render_device_lost
+  | User_event of int
+  | Unknown of int
+
+let event_type_of_int = function
+  | 0x100 -> Quit
+  | 0x101 -> Terminating
+  | 0x102 -> Low_memory
+  | 0x103 -> Will_enter_background
+  | 0x104 -> Did_enter_background
+  | 0x105 -> Will_enter_foreground
+  | 0x106 -> Did_enter_foreground
+  | 0x107 -> Locale_changed
+  | 0x108 -> System_theme_changed
+  | 0x151 -> Display_orientation
+  | 0x152 -> Display_added
+  | 0x153 -> Display_removed
+  | 0x154 -> Display_moved
+  | 0x155 -> Display_desktop_mode_changed
+  | 0x156 -> Display_current_mode_changed
+  | 0x157 -> Display_content_scale_changed
+  | 0x158 -> Display_usable_bounds_changed
+  | 0x202 -> Window_shown
+  | 0x203 -> Window_hidden
+  | 0x204 -> Window_exposed
+  | 0x205 -> Window_moved
+  | 0x206 -> Window_resized
+  | 0x207 -> Window_pixel_size_changed
+  | 0x208 -> Window_metal_view_resized
+  | 0x209 -> Window_minimized
+  | 0x20a -> Window_maximized
+  | 0x20b -> Window_restored
+  | 0x20c -> Window_mouse_enter
+  | 0x20d -> Window_mouse_leave
+  | 0x20e -> Window_focus_gained
+  | 0x20f -> Window_focus_lost
+  | 0x210 -> Window_close_requested
+  | 0x211 -> Window_hit_test
+  | 0x212 -> Window_iccprof_changed
+  | 0x213 -> Window_display_changed
+  | 0x214 -> Window_display_scale_changed
+  | 0x215 -> Window_safe_area_changed
+  | 0x216 -> Window_occluded
+  | 0x217 -> Window_enter_fullscreen
+  | 0x218 -> Window_leave_fullscreen
+  | 0x219 -> Window_destroyed
+  | 0x21a -> Window_hdr_state_changed
+  | 0x300 -> Key_down
+  | 0x301 -> Key_up
+  | 0x302 -> Text_editing
+  | 0x303 -> Text_input
+  | 0x304 -> Keymap_changed
+  | 0x305 -> Keyboard_added
+  | 0x306 -> Keyboard_removed
+  | 0x307 -> Text_editing_candidates
+  | 0x308 -> Screen_keyboard_shown
+  | 0x309 -> Screen_keyboard_hidden
+  | 0x400 -> Mouse_motion
+  | 0x401 -> Mouse_button_down
+  | 0x402 -> Mouse_button_up
+  | 0x403 -> Mouse_wheel
+  | 0x404 -> Mouse_added
+  | 0x405 -> Mouse_removed
+  | 0x600 -> Joystick_axis_motion
+  | 0x601 -> Joystick_ball_motion
+  | 0x602 -> Joystick_hat_motion
+  | 0x603 -> Joystick_button_down
+  | 0x604 -> Joystick_button_up
+  | 0x605 -> Joystick_added
+  | 0x606 -> Joystick_removed
+  | 0x607 -> Joystick_battery_updated
+  | 0x608 -> Joystick_update_complete
+  | 0x650 -> Gamepad_axis_motion
+  | 0x651 -> Gamepad_button_down
+  | 0x652 -> Gamepad_button_up
+  | 0x653 -> Gamepad_added
+  | 0x654 -> Gamepad_removed
+  | 0x655 -> Gamepad_remapped
+  | 0x656 -> Gamepad_touchpad_down
+  | 0x657 -> Gamepad_touchpad_motion
+  | 0x658 -> Gamepad_touchpad_up
+  | 0x659 -> Gamepad_sensor_update
+  | 0x65a -> Gamepad_update_complete
+  | 0x65b -> Gamepad_steam_handle_updated
+  | 0x700 -> Finger_down
+  | 0x701 -> Finger_up
+  | 0x702 -> Finger_motion
+  | 0x703 -> Finger_canceled
+  | 0x710 -> Pinch_begin
+  | 0x711 -> Pinch_update
+  | 0x712 -> Pinch_end
+  | 0x900 -> Clipboard_update
+  | 0x1000 -> Drop_file
+  | 0x1001 -> Drop_text
+  | 0x1002 -> Drop_begin
+  | 0x1003 -> Drop_complete
+  | 0x1004 -> Drop_position
+  | 0x1100 -> Audio_device_added
+  | 0x1101 -> Audio_device_removed
+  | 0x1102 -> Audio_device_format_changed
+  | 0x1200 -> Sensor_update
+  | 0x1300 -> Pen_proximity_in
+  | 0x1301 -> Pen_proximity_out
+  | 0x1302 -> Pen_down
+  | 0x1303 -> Pen_up
+  | 0x1304 -> Pen_button_down
+  | 0x1305 -> Pen_button_up
+  | 0x1306 -> Pen_motion
+  | 0x1307 -> Pen_axis
+  | 0x1400 -> Camera_device_added
+  | 0x1401 -> Camera_device_removed
+  | 0x1402 -> Camera_device_approved
+  | 0x1403 -> Camera_device_denied
+  | 0x2000 -> Render_targets_reset
+  | 0x2001 -> Render_device_reset
+  | 0x2002 -> Render_device_lost
+  | i when i >= sdl_event_user -> User_event i
+  | i -> Unknown i
+
+let event_type_to_int : event_type -> int = function
+  | Quit -> sdl_event_quit
+  | Terminating -> sdl_event_terminating
+  | Low_memory -> sdl_event_low_memory
+  | Will_enter_background -> sdl_event_will_enter_background
+  | Did_enter_background -> sdl_event_did_enter_background
+  | Will_enter_foreground -> sdl_event_will_enter_foreground
+  | Did_enter_foreground -> sdl_event_did_enter_foreground
+  | Locale_changed -> sdl_event_locale_changed
+  | System_theme_changed -> sdl_event_system_theme_changed
+  | Display_orientation -> sdl_event_display_orientation
+  | Display_added -> sdl_event_display_added
+  | Display_removed -> sdl_event_display_removed
+  | Display_moved -> sdl_event_display_moved
+  | Display_desktop_mode_changed -> sdl_event_display_desktop_mode_changed
+  | Display_current_mode_changed -> sdl_event_display_current_mode_changed
+  | Display_content_scale_changed -> sdl_event_display_content_scale_changed
+  | Display_usable_bounds_changed -> sdl_event_display_usable_bounds_changed
+  | Window_shown -> sdl_event_window_shown
+  | Window_hidden -> sdl_event_window_hidden
+  | Window_exposed -> sdl_event_window_exposed
+  | Window_moved -> sdl_event_window_moved
+  | Window_resized -> sdl_event_window_resized
+  | Window_pixel_size_changed -> sdl_event_window_pixel_size_changed
+  | Window_metal_view_resized -> sdl_event_window_metal_view_resized
+  | Window_minimized -> sdl_event_window_minimized
+  | Window_maximized -> sdl_event_window_maximized
+  | Window_restored -> sdl_event_window_restored
+  | Window_mouse_enter -> sdl_event_window_mouse_enter
+  | Window_mouse_leave -> sdl_event_window_mouse_leave
+  | Window_focus_gained -> sdl_event_window_focus_gained
+  | Window_focus_lost -> sdl_event_window_focus_lost
+  | Window_close_requested -> sdl_event_window_close_requested
+  | Window_hit_test -> sdl_event_window_hit_test
+  | Window_iccprof_changed -> sdl_event_window_iccprof_changed
+  | Window_display_changed -> sdl_event_window_display_changed
+  | Window_display_scale_changed -> sdl_event_window_display_scale_changed
+  | Window_safe_area_changed -> sdl_event_window_safe_area_changed
+  | Window_occluded -> sdl_event_window_occluded
+  | Window_enter_fullscreen -> sdl_event_window_enter_fullscreen
+  | Window_leave_fullscreen -> sdl_event_window_leave_fullscreen
+  | Window_destroyed -> sdl_event_window_destroyed
+  | Window_hdr_state_changed -> sdl_event_window_hdr_state_changed
+  | Key_down -> sdl_event_key_down
+  | Key_up -> sdl_event_key_up
+  | Text_editing -> sdl_event_text_editing
+  | Text_input -> sdl_event_text_input
+  | Keymap_changed -> sdl_event_keymap_changed
+  | Keyboard_added -> sdl_event_keyboard_added
+  | Keyboard_removed -> sdl_event_keyboard_removed
+  | Text_editing_candidates -> sdl_event_text_editing_candidates
+  | Screen_keyboard_shown -> sdl_event_screen_keyboard_shown
+  | Screen_keyboard_hidden -> sdl_event_screen_keyboard_hidden
+  | Mouse_motion -> sdl_event_mouse_motion
+  | Mouse_button_down -> sdl_event_mouse_button_down
+  | Mouse_button_up -> sdl_event_mouse_button_up
+  | Mouse_wheel -> sdl_event_mouse_wheel
+  | Mouse_added -> sdl_event_mouse_added
+  | Mouse_removed -> sdl_event_mouse_removed
+  | Joystick_axis_motion -> sdl_event_joystick_axis_motion
+  | Joystick_ball_motion -> sdl_event_joystick_ball_motion
+  | Joystick_hat_motion -> sdl_event_joystick_hat_motion
+  | Joystick_button_down -> sdl_event_joystick_button_down
+  | Joystick_button_up -> sdl_event_joystick_button_up
+  | Joystick_added -> sdl_event_joystick_added
+  | Joystick_removed -> sdl_event_joystick_removed
+  | Joystick_battery_updated -> sdl_event_joystick_battery_updated
+  | Joystick_update_complete -> sdl_event_joystick_update_complete
+  | Gamepad_axis_motion -> sdl_event_gamepad_axis_motion
+  | Gamepad_button_down -> sdl_event_gamepad_button_down
+  | Gamepad_button_up -> sdl_event_gamepad_button_up
+  | Gamepad_added -> sdl_event_gamepad_added
+  | Gamepad_removed -> sdl_event_gamepad_removed
+  | Gamepad_remapped -> sdl_event_gamepad_remapped
+  | Gamepad_touchpad_down -> sdl_event_gamepad_touchpad_down
+  | Gamepad_touchpad_motion -> sdl_event_gamepad_touchpad_motion
+  | Gamepad_touchpad_up -> sdl_event_gamepad_touchpad_up
+  | Gamepad_sensor_update -> sdl_event_gamepad_sensor_update
+  | Gamepad_update_complete -> sdl_event_gamepad_update_complete
+  | Gamepad_steam_handle_updated -> sdl_event_gamepad_steam_handle_updated
+  | Finger_down -> sdl_event_finger_down
+  | Finger_up -> sdl_event_finger_up
+  | Finger_motion -> sdl_event_finger_motion
+  | Finger_canceled -> sdl_event_finger_canceled
+  | Pinch_begin -> sdl_event_pinch_begin
+  | Pinch_update -> sdl_event_pinch_update
+  | Pinch_end -> sdl_event_pinch_end
+  | Clipboard_update -> sdl_event_clipboard_update
+  | Drop_file -> sdl_event_drop_file
+  | Drop_text -> sdl_event_drop_text
+  | Drop_begin -> sdl_event_drop_begin
+  | Drop_complete -> sdl_event_drop_complete
+  | Drop_position -> sdl_event_drop_position
+  | Audio_device_added -> sdl_event_audio_device_added
+  | Audio_device_removed -> sdl_event_audio_device_removed
+  | Audio_device_format_changed -> sdl_event_audio_device_format_changed
+  | Sensor_update -> sdl_event_sensor_update
+  | Pen_proximity_in -> sdl_event_pen_proximity_in
+  | Pen_proximity_out -> sdl_event_pen_proximity_out
+  | Pen_down -> sdl_event_pen_down
+  | Pen_up -> sdl_event_pen_up
+  | Pen_button_down -> sdl_event_pen_button_down
+  | Pen_button_up -> sdl_event_pen_button_up
+  | Pen_motion -> sdl_event_pen_motion
+  | Pen_axis -> sdl_event_pen_axis
+  | Camera_device_added -> sdl_event_camera_device_added
+  | Camera_device_removed -> sdl_event_camera_device_removed
+  | Camera_device_approved -> sdl_event_camera_device_approved
+  | Camera_device_denied -> sdl_event_camera_device_denied
+  | Render_targets_reset -> sdl_event_render_targets_reset
+  | Render_device_reset -> sdl_event_render_device_reset
+  | Render_device_lost -> sdl_event_render_device_lost
+  | User_event i -> i
+  | Unknown i -> i
+
+let get_type ev = event_type_of_int (get_type_raw ev)
 
 let get_window_from_event (ev : t) : Sdl3_video.window option =
   let w = sdl_get_window_from_event (addr ev) in
@@ -254,12 +601,18 @@ module Mouse_button = struct
   let y e = Field.get e Field.mouse_button_y
 end
 
+type wheel_direction = Normal | Flipped
+
+let wheel_direction_of_int = function
+  | 0 -> Normal
+  | _ -> Flipped
+
 module Mouse_wheel = struct
   let timestamp e = Unsigned.UInt64.to_int (Field.get e Field.mouse_wheel_timestamp)
   let window_id e = Unsigned.UInt32.to_int32 (Field.get e Field.mouse_wheel_window_id)
   let x e = Field.get e Field.mouse_wheel_x
   let y e = Field.get e Field.mouse_wheel_y
-  let direction e = Signed.Int32.to_int (Field.get e Field.mouse_wheel_direction)
+  let direction e = wheel_direction_of_int (Signed.Int32.to_int (Field.get e Field.mouse_wheel_direction))
   let mouse_x e = Field.get e Field.mouse_wheel_mouse_x
   let mouse_y e = Field.get e Field.mouse_wheel_mouse_y
 end
@@ -281,124 +634,3 @@ module Drop = struct
     if is_null p then None else Some (coerce (ptr char) string p)
 end
 
-module Type = struct
-  let first = sdl_event_first
-  let quit = sdl_event_quit
-  let terminating = sdl_event_terminating
-  let low_memory = sdl_event_low_memory
-  let will_enter_background = sdl_event_will_enter_background
-  let did_enter_background = sdl_event_did_enter_background
-  let will_enter_foreground = sdl_event_will_enter_foreground
-  let did_enter_foreground = sdl_event_did_enter_foreground
-  let locale_changed = sdl_event_locale_changed
-  let system_theme_changed = sdl_event_system_theme_changed
-  let display_orientation = sdl_event_display_orientation
-  let display_added = sdl_event_display_added
-  let display_removed = sdl_event_display_removed
-  let display_moved = sdl_event_display_moved
-  let display_desktop_mode_changed = sdl_event_display_desktop_mode_changed
-  let display_current_mode_changed = sdl_event_display_current_mode_changed
-  let display_content_scale_changed = sdl_event_display_content_scale_changed
-  let display_usable_bounds_changed = sdl_event_display_usable_bounds_changed
-  let window_shown = sdl_event_window_shown
-  let window_hidden = sdl_event_window_hidden
-  let window_exposed = sdl_event_window_exposed
-  let window_moved = sdl_event_window_moved
-  let window_resized = sdl_event_window_resized
-  let window_pixel_size_changed = sdl_event_window_pixel_size_changed
-  let window_metal_view_resized = sdl_event_window_metal_view_resized
-  let window_minimized = sdl_event_window_minimized
-  let window_maximized = sdl_event_window_maximized
-  let window_restored = sdl_event_window_restored
-  let window_mouse_enter = sdl_event_window_mouse_enter
-  let window_mouse_leave = sdl_event_window_mouse_leave
-  let window_focus_gained = sdl_event_window_focus_gained
-  let window_focus_lost = sdl_event_window_focus_lost
-  let window_close_requested = sdl_event_window_close_requested
-  let window_hit_test = sdl_event_window_hit_test
-  let window_iccprof_changed = sdl_event_window_iccprof_changed
-  let window_display_changed = sdl_event_window_display_changed
-  let window_display_scale_changed = sdl_event_window_display_scale_changed
-  let window_safe_area_changed = sdl_event_window_safe_area_changed
-  let window_occluded = sdl_event_window_occluded
-  let window_enter_fullscreen = sdl_event_window_enter_fullscreen
-  let window_leave_fullscreen = sdl_event_window_leave_fullscreen
-  let window_destroyed = sdl_event_window_destroyed
-  let window_hdr_state_changed = sdl_event_window_hdr_state_changed
-  let key_down = sdl_event_key_down
-  let key_up = sdl_event_key_up
-  let text_editing = sdl_event_text_editing
-  let text_input = sdl_event_text_input
-  let keymap_changed = sdl_event_keymap_changed
-  let keyboard_added = sdl_event_keyboard_added
-  let keyboard_removed = sdl_event_keyboard_removed
-  let text_editing_candidates = sdl_event_text_editing_candidates
-  let screen_keyboard_shown = sdl_event_screen_keyboard_shown
-  let screen_keyboard_hidden = sdl_event_screen_keyboard_hidden
-  let mouse_motion = sdl_event_mouse_motion
-  let mouse_button_down = sdl_event_mouse_button_down
-  let mouse_button_up = sdl_event_mouse_button_up
-  let mouse_wheel = sdl_event_mouse_wheel
-  let mouse_added = sdl_event_mouse_added
-  let mouse_removed = sdl_event_mouse_removed
-  let joystick_axis_motion = sdl_event_joystick_axis_motion
-  let joystick_ball_motion = sdl_event_joystick_ball_motion
-  let joystick_hat_motion = sdl_event_joystick_hat_motion
-  let joystick_button_down = sdl_event_joystick_button_down
-  let joystick_button_up = sdl_event_joystick_button_up
-  let joystick_added = sdl_event_joystick_added
-  let joystick_removed = sdl_event_joystick_removed
-  let joystick_battery_updated = sdl_event_joystick_battery_updated
-  let joystick_update_complete = sdl_event_joystick_update_complete
-  let gamepad_axis_motion = sdl_event_gamepad_axis_motion
-  let gamepad_button_down = sdl_event_gamepad_button_down
-  let gamepad_button_up = sdl_event_gamepad_button_up
-  let gamepad_added = sdl_event_gamepad_added
-  let gamepad_removed = sdl_event_gamepad_removed
-  let gamepad_remapped = sdl_event_gamepad_remapped
-  let gamepad_touchpad_down = sdl_event_gamepad_touchpad_down
-  let gamepad_touchpad_motion = sdl_event_gamepad_touchpad_motion
-  let gamepad_touchpad_up = sdl_event_gamepad_touchpad_up
-  let gamepad_sensor_update = sdl_event_gamepad_sensor_update
-  let gamepad_update_complete = sdl_event_gamepad_update_complete
-  let gamepad_steam_handle_updated = sdl_event_gamepad_steam_handle_updated
-  let finger_down = sdl_event_finger_down
-  let finger_up = sdl_event_finger_up
-  let finger_motion = sdl_event_finger_motion
-  let finger_canceled = sdl_event_finger_canceled
-  let pinch_begin = sdl_event_pinch_begin
-  let pinch_update = sdl_event_pinch_update
-  let pinch_end = sdl_event_pinch_end
-  let clipboard_update = sdl_event_clipboard_update
-  let drop_file = sdl_event_drop_file
-  let drop_text = sdl_event_drop_text
-  let drop_begin = sdl_event_drop_begin
-  let drop_complete = sdl_event_drop_complete
-  let drop_position = sdl_event_drop_position
-  let audio_device_added = sdl_event_audio_device_added
-  let audio_device_removed = sdl_event_audio_device_removed
-  let audio_device_format_changed = sdl_event_audio_device_format_changed
-  let sensor_update = sdl_event_sensor_update
-  let pen_proximity_in = sdl_event_pen_proximity_in
-  let pen_proximity_out = sdl_event_pen_proximity_out
-  let pen_down = sdl_event_pen_down
-  let pen_up = sdl_event_pen_up
-  let pen_button_down = sdl_event_pen_button_down
-  let pen_button_up = sdl_event_pen_button_up
-  let pen_motion = sdl_event_pen_motion
-  let pen_axis = sdl_event_pen_axis
-  let camera_device_added = sdl_event_camera_device_added
-  let camera_device_removed = sdl_event_camera_device_removed
-  let camera_device_approved = sdl_event_camera_device_approved
-  let camera_device_denied = sdl_event_camera_device_denied
-  let render_targets_reset = sdl_event_render_targets_reset
-  let render_device_reset = sdl_event_render_device_reset
-  let render_device_lost = sdl_event_render_device_lost
-  let user = sdl_event_user
-  let last = sdl_event_last
-end
-
-module Wheel = struct
-  let normal = sdl_mousewheel_normal
-  let flipped = sdl_mousewheel_flipped
-end

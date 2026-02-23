@@ -41,9 +41,11 @@ val was_init : Init.t option -> Init.t
     [was_init (Some mask)] returns flags matching [mask]. *)
 
 (** {1 Hints} *)
+type hint_priority = Hint_default | Hint_normal | Hint_override
+
 module Hint : sig
   type t = string
-  type priority = int
+  type priority = hint_priority
   val framebuffer_acceleration : t
   val audio_driver : t
   val video_driver : t
@@ -55,11 +57,18 @@ val reset_hints : unit -> unit
 val get_hint : string -> string option
 val get_hint_boolean : string -> bool -> bool
 val set_hint : string -> string -> bool
-val set_hint_with_priority : string -> string -> Hint.priority -> bool
+val set_hint_with_priority : string -> string -> hint_priority -> bool
 
 (** {1 Log} *)
+type log_category =
+  | Log_application | Log_error | Log_system | Log_audio
+  | Log_video | Log_render | Log_input | Log_test
+
+type log_priority =
+  | Log_verbose | Log_debug | Log_info | Log_warn | Log_error_priority | Log_critical
+
 module Log : sig
-  type category = int
+  type category = log_category
   val category_application : category
   val category_error : category
   val category_system : category
@@ -69,7 +78,7 @@ module Log : sig
   val category_input : category
   val category_test : category
 
-  type priority = int
+  type priority = log_priority
   val priority_verbose : priority
   val priority_debug : priority
   val priority_info : priority
@@ -78,11 +87,11 @@ module Log : sig
   val priority_critical : priority
 end
 val log : string -> unit
-val log_message : int -> int -> string -> unit
-val log_get_priority : int -> int
+val log_message : log_category -> log_priority -> string -> unit
+val log_get_priority : log_category -> log_priority
 val log_reset_priorities : unit -> unit
 val log_set_all_priority : int -> unit
-val log_set_priority : int -> int -> unit
+val log_set_priority : log_category -> log_priority -> unit
 
 (** {1 Version} *)
 val get_version : unit -> int * int * int
@@ -107,6 +116,7 @@ module Video : sig
     val y : rect -> int
     val w : rect -> int
     val h : rect -> int
+    val make : x:int -> y:int -> w:int -> h:int -> rect
   end
 
   module Window : sig
@@ -121,7 +131,7 @@ module Video : sig
     val metal : window_flags
   end
 
-  val create_window : string -> int -> int -> window_flags -> window
+  val create_window : title:string -> width:int -> height:int -> flags:window_flags -> window
   val destroy_window : window -> unit
   val get_window_id : window -> int32
   val get_window_from_id : int32 -> window option

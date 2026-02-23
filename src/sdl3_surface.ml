@@ -32,8 +32,8 @@ let adopt_ s = Gc.finalise sdl_destroy_surface s
 let of_ptr_ p = (p : surface)
 let to_ptr_ s = (s : unit ptr)
 
-let create_surface w h format =
-  let p = sdl_create_surface w h (Unsigned.UInt32.of_int format) in
+let create_surface ~width ~height ~format =
+  let p = sdl_create_surface width height (Unsigned.UInt32.of_int format) in
   if is_null p then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   adopt_ p;
   p
@@ -42,13 +42,13 @@ let sdl_create_surface_from =
   foreign "SDL_CreateSurfaceFrom"
     (int @-> int @-> uint32_t @-> ptr void @-> int @-> returning (ptr void))
 
-let create_surface_from w h format pixels pitch =
+let create_surface_from ~width ~height ~format ~pixels ~pitch =
   let pix_ptr =
     match pixels with
     | None -> coerce (ptr void) (ptr void) null
     | Some ba -> to_voidp (bigarray_start array1 ba)
   in
-  let p = sdl_create_surface_from w h (Unsigned.UInt32.of_int format) pix_ptr pitch in
+  let p = sdl_create_surface_from width height (Unsigned.UInt32.of_int format) pix_ptr pitch in
   if is_null p then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   adopt_ p;
   p

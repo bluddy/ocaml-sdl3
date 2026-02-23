@@ -1,11 +1,106 @@
 open Ctypes
 open Foreign
+open Sdl3_consts
 open Sdl3_video
 open Sdl3_surface
 
 (** Opaque renderer and texture pointers. *)
 type renderer = unit ptr
 type texture = unit ptr
+
+type blend_mode =
+  | Blend_none
+  | Blend_blend
+  | Blend_blend_premultiplied
+  | Blend_add
+  | Blend_add_premultiplied
+  | Blend_mod
+  | Blend_mul
+  | Blend_invalid
+
+let blend_mode_to_int = function
+  | Blend_none -> sdl_blendmode_none
+  | Blend_blend -> sdl_blendmode_blend
+  | Blend_blend_premultiplied -> sdl_blendmode_blend_premultiplied
+  | Blend_add -> sdl_blendmode_add
+  | Blend_add_premultiplied -> sdl_blendmode_add_premultiplied
+  | Blend_mod -> sdl_blendmode_mod
+  | Blend_mul -> sdl_blendmode_mul
+  | Blend_invalid -> sdl_blendmode_invalid
+
+let blend_mode_of_int = function
+  | 0x00000000 -> Blend_none
+  | 0x00000001 -> Blend_blend
+  | 0x00000010 -> Blend_blend_premultiplied
+  | 0x00000002 -> Blend_add
+  | 0x00000020 -> Blend_add_premultiplied
+  | 0x00000004 -> Blend_mod
+  | 0x00000008 -> Blend_mul
+  | _ -> Blend_invalid
+
+type scale_mode = Scale_invalid | Scale_nearest | Scale_linear | Scale_pixelart
+
+let scale_mode_to_int = function
+  | Scale_invalid -> sdl_scalemode_invalid
+  | Scale_nearest -> sdl_scalemode_nearest
+  | Scale_linear -> sdl_scalemode_linear
+  | Scale_pixelart -> sdl_scalemode_pixelart
+
+let scale_mode_of_int = function
+  | -1 -> Scale_invalid
+  | 0 -> Scale_nearest
+  | 1 -> Scale_linear
+  | 2 -> Scale_pixelart
+  | _ -> Scale_invalid
+
+type flip = Flip_none | Flip_horizontal | Flip_vertical | Flip_both
+
+let flip_to_int = function
+  | Flip_none -> sdl_flip_none
+  | Flip_horizontal -> sdl_flip_horizontal
+  | Flip_vertical -> sdl_flip_vertical
+  | Flip_both -> sdl_flip_horizontal_and_vertical
+
+type logical_presentation =
+  | Logical_disabled
+  | Logical_stretch
+  | Logical_letterbox
+  | Logical_overscan
+  | Logical_integer_scale
+
+let logical_presentation_to_int = function
+  | Logical_disabled -> sdl_logical_presentation_disabled
+  | Logical_stretch -> sdl_logical_presentation_stretch
+  | Logical_letterbox -> sdl_logical_presentation_letterbox
+  | Logical_overscan -> sdl_logical_presentation_overscan
+  | Logical_integer_scale -> sdl_logical_presentation_integer_scale
+
+let logical_presentation_of_int = function
+  | 0 -> Logical_disabled
+  | 1 -> Logical_stretch
+  | 2 -> Logical_letterbox
+  | 3 -> Logical_overscan
+  | 4 -> Logical_integer_scale
+  | _ -> Logical_disabled
+
+type vsync_mode = Vsync_off | Vsync_on | Vsync_adaptive
+
+let vsync_mode_to_int = function
+  | Vsync_off -> sdl_renderer_vsync_disabled
+  | Vsync_on -> 1
+  | Vsync_adaptive -> sdl_renderer_vsync_adaptive
+
+let vsync_mode_of_int = function
+  | 0 -> Vsync_off
+  | -1 -> Vsync_adaptive
+  | _ -> Vsync_on
+
+type texture_access = Texture_static | Texture_streaming | Texture_target
+
+let texture_access_to_int = function
+  | Texture_static -> sdl_textureaccess_static
+  | Texture_streaming -> sdl_textureaccess_streaming
+  | Texture_target -> sdl_textureaccess_target
 
 (** SDL_FPoint - float point. *)
 type fpoint_tag
@@ -36,7 +131,7 @@ module FRect = struct
   let set_w r v = setf r _frect_w v
   let set_h r v = setf r _frect_h v
 
-  let make x y w h =
+  let make ~x ~y ~w ~h =
     let r = Ctypes.make sdl_frect in
     setf r _frect_x x;
     setf r _frect_y y;
@@ -57,7 +152,7 @@ end
 module FPoint = struct
   let x p = getf p _fpoint_x
   let y p = getf p _fpoint_y
-  let make x y =
+  let make ~x ~y =
     let p = Ctypes.make sdl_fpoint in
     setf p _fpoint_x x;
     setf p _fpoint_y y;
@@ -80,7 +175,7 @@ module FColor = struct
   let g c = getf c _fcolor_g
   let b c = getf c _fcolor_b
   let a c = getf c _fcolor_a
-  let make r g b a =
+  let make ~r ~g ~b ~a =
     let c = Ctypes.make sdl_fcolor in
     setf c _fcolor_r r;
     setf c _fcolor_g g;
@@ -116,11 +211,11 @@ let sdl_create_window_and_renderer =
     (string @-> int @-> int @-> uint64_t @-> ptr (ptr void) @-> ptr (ptr void)
        @-> returning bool)
 
-let create_window_and_renderer (title : string) (w : int) (h : int)
+let create_window_and_renderer ~title ~width ~height
     (flags : Sdl3_video.window_flags) : Sdl3_video.window * renderer =
   let win_ptr = allocate (ptr void) (coerce (ptr void) (ptr void) null) in
   let ren_ptr = allocate (ptr void) (coerce (ptr void) (ptr void) null) in
-  if not (sdl_create_window_and_renderer title w h
+  if not (sdl_create_window_and_renderer title width height
             (Unsigned.UInt64.of_int64 flags) win_ptr ren_ptr)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   let w' = !@ win_ptr in
@@ -148,18 +243,21 @@ let get_render_window renderer =
 let sdl_get_current_render_output_size =
   foreign "SDL_GetCurrentRenderOutputSize" (ptr void @-> ptr int @-> ptr int @-> returning bool)
 
+type draw_color = { r : int; g : int; b : int; a : int }
+type output_size = { width : int; height : int }
+
 let get_output_size renderer =
   let pw = allocate int 0 in
   let ph = allocate int 0 in
   if not (sdl_get_current_render_output_size renderer pw ph)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  (!@ pw, !@ ph)
+  { width = !@ pw; height = !@ ph }
 
 let sdl_set_render_draw_color =
   foreign "SDL_SetRenderDrawColor"
     (ptr void @-> uint8_t @-> uint8_t @-> uint8_t @-> uint8_t @-> returning bool)
 
-let set_draw_color renderer r g b a =
+let set_draw_color renderer ~r ~g ~b ~a =
   if
     not
       (sdl_set_render_draw_color renderer (Unsigned.UInt8.of_int r)
@@ -178,16 +276,16 @@ let get_draw_color renderer =
   let pa = allocate uint8_t Unsigned.UInt8.zero in
   if not (sdl_get_render_draw_color renderer pr pg pb pa)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  ( Unsigned.UInt8.to_int !@ pr,
-    Unsigned.UInt8.to_int !@ pg,
-    Unsigned.UInt8.to_int !@ pb,
-    Unsigned.UInt8.to_int !@ pa )
+  { r = Unsigned.UInt8.to_int !@ pr;
+    g = Unsigned.UInt8.to_int !@ pg;
+    b = Unsigned.UInt8.to_int !@ pb;
+    a = Unsigned.UInt8.to_int !@ pa }
 
 let sdl_set_render_draw_blend_mode =
   foreign "SDL_SetRenderDrawBlendMode" (ptr void @-> uint32_t @-> returning bool)
 
 let set_draw_blend_mode renderer mode =
-  if not (sdl_set_render_draw_blend_mode renderer (Unsigned.UInt32.of_int mode))
+  if not (sdl_set_render_draw_blend_mode renderer (Unsigned.UInt32.of_int (blend_mode_to_int mode)))
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
 let sdl_render_clear = foreign "SDL_RenderClear" (ptr void @-> returning bool)
@@ -212,7 +310,8 @@ let sdl_create_texture =
 
 let create_texture renderer ~format ~access ~width ~height =
   let p =
-    sdl_create_texture renderer (Unsigned.UInt32.of_int format) access width height
+    sdl_create_texture renderer (Unsigned.UInt32.of_int format)
+      (texture_access_to_int access) width height
   in
   if is_null p then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   p
@@ -242,23 +341,23 @@ let sdl_render_texture_rotated =
     (ptr void @-> ptr void @-> ptr sdl_frect @-> ptr sdl_frect @-> double
        @-> ptr sdl_fpoint @-> int @-> returning bool)
 
-let render_texture_rotated renderer texture ?srcrect ?dstrect angle ?center flip =
+let render_texture_rotated renderer texture ?srcrect ?dstrect ~angle ?center ~flip () =
   let src = match srcrect with None -> coerce (ptr void) (ptr sdl_frect) null | Some r -> addr r in
   let dst = match dstrect with None -> coerce (ptr void) (ptr sdl_frect) null | Some r -> addr r in
   let ctr = match center with None -> coerce (ptr void) (ptr sdl_fpoint) null | Some p -> addr p in
-  if not (sdl_render_texture_rotated renderer texture src dst angle ctr flip)
+  if not (sdl_render_texture_rotated renderer texture src dst angle ctr (flip_to_int flip))
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
 let sdl_render_point = foreign "SDL_RenderPoint" (ptr void @-> float @-> float @-> returning bool)
 
-let render_point renderer x y =
+let render_point renderer ~x ~y =
   if not (sdl_render_point renderer x y)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
 let sdl_render_line =
   foreign "SDL_RenderLine" (ptr void @-> float @-> float @-> float @-> float @-> returning bool)
 
-let render_line renderer x1 y1 x2 y2 =
+let render_line renderer ~x1 ~y1 ~x2 ~y2 =
   if not (sdl_render_line renderer x1 y1 x2 y2)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
@@ -327,7 +426,7 @@ let sdl_update_texture =
   foreign "SDL_UpdateTexture"
     (ptr void @-> ptr void @-> ptr void @-> int @-> returning bool)
 
-let update_texture texture ?rect pixels pitch =
+let update_texture texture ?rect pixels ~pitch =
   let r =
     match rect with
     | None -> coerce (ptr void) (ptr void) null
@@ -342,8 +441,10 @@ let sdl_set_render_logical_presentation =
   foreign "SDL_SetRenderLogicalPresentation"
     (ptr void @-> int @-> int @-> int @-> returning bool)
 
+type logical_presentation_result = { width : int; height : int; mode : logical_presentation }
+
 let set_render_logical_presentation renderer ~width ~height ~mode =
-  if not (sdl_set_render_logical_presentation renderer width height mode)
+  if not (sdl_set_render_logical_presentation renderer width height (logical_presentation_to_int mode))
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
 let sdl_get_render_logical_presentation =
@@ -356,7 +457,7 @@ let get_render_logical_presentation renderer =
   let pmode = allocate int 0 in
   if not (sdl_get_render_logical_presentation renderer pw ph pmode)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  (!@ pw, !@ ph, !@ pmode)
+  { width = !@ pw; height = !@ ph; mode = logical_presentation_of_int !@ pmode }
 
 let sdl_get_render_logical_presentation_rect =
   foreign "SDL_GetRenderLogicalPresentationRect"
@@ -374,7 +475,7 @@ let sdl_render_texture_tiled =
     (ptr void @-> ptr void @-> ptr sdl_frect @-> float @-> ptr sdl_frect
        @-> returning bool)
 
-let render_texture_tiled renderer texture ?srcrect scale ?dstrect () =
+let render_texture_tiled renderer texture ?srcrect ~scale ?dstrect () =
   let src = match srcrect with None -> coerce (ptr void) (ptr sdl_frect) null | Some r -> addr r in
   let dst = match dstrect with None -> coerce (ptr void) (ptr sdl_frect) null | Some r -> addr r in
   if not (sdl_render_texture_tiled renderer texture src scale dst)
@@ -386,8 +487,8 @@ let sdl_render_texture_9_grid =
     (ptr void @-> ptr void @-> ptr sdl_frect @-> float @-> float @-> float
        @-> float @-> float @-> ptr sdl_frect @-> returning bool)
 
-let render_texture_9_grid renderer texture ?srcrect left_width right_width
-    top_height bottom_height scale ?dstrect () =
+let render_texture_9_grid renderer texture ?srcrect ~left_width ~right_width
+    ~top_height ~bottom_height ~scale ?dstrect () =
   let src = match srcrect with None -> coerce (ptr void) (ptr sdl_frect) null | Some r -> addr r in
   let dst = match dstrect with None -> coerce (ptr void) (ptr sdl_frect) null | Some r -> addr r in
   if not (sdl_render_texture_9_grid renderer texture src left_width right_width
@@ -401,8 +502,8 @@ let sdl_render_texture_9_grid_tiled =
        @-> float @-> float @-> ptr sdl_frect @-> float
        @-> returning bool)
 
-let render_texture_9_grid_tiled renderer texture ?srcrect left_width right_width
-    top_height bottom_height scale ?dstrect tile_scale () =
+let render_texture_9_grid_tiled renderer texture ?srcrect ~left_width ~right_width
+    ~top_height ~bottom_height ~scale ?dstrect ~tile_scale () =
   let src = match srcrect with None -> coerce (ptr void) (ptr sdl_frect) null | Some r -> addr r in
   let dst = match dstrect with None -> coerce (ptr void) (ptr sdl_frect) null | Some r -> addr r in
   if not (sdl_render_texture_9_grid_tiled renderer texture src left_width right_width
@@ -484,7 +585,7 @@ let render_read_pixels renderer ?rect () =
 let sdl_set_render_vsync = foreign "SDL_SetRenderVSync" (ptr void @-> int @-> returning bool)
 
 let set_render_vsync renderer vsync =
-  if not (sdl_set_render_vsync renderer vsync)
+  if not (sdl_set_render_vsync renderer (vsync_mode_to_int vsync))
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
 let sdl_get_render_vsync =
@@ -494,14 +595,14 @@ let get_render_vsync renderer =
   let p = allocate int 0 in
   if not (sdl_get_render_vsync renderer p)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  !@ p
+  vsync_mode_of_int !@ p
 
 (* --- Default texture scale mode --- *)
 let sdl_set_default_texture_scale_mode =
   foreign "SDL_SetDefaultTextureScaleMode" (ptr void @-> int @-> returning bool)
 
 let set_default_texture_scale_mode renderer mode =
-  if not (sdl_set_default_texture_scale_mode renderer mode)
+  if not (sdl_set_default_texture_scale_mode renderer (scale_mode_to_int mode))
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
 let sdl_get_default_texture_scale_mode =
@@ -511,18 +612,25 @@ let get_default_texture_scale_mode renderer =
   let p = allocate int 0 in
   if not (sdl_get_default_texture_scale_mode renderer p)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  !@ p
+  scale_mode_of_int !@ p
 
 (* --- GetTextureSize --- *)
 let sdl_get_texture_size =
   foreign "SDL_GetTextureSize" (ptr void @-> ptr float @-> ptr float @-> returning bool)
+
+type texture_size = { width : float; height : float }
+
+type locked_texture = {
+  pixels : (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t;
+  pitch : int;
+}
 
 let get_texture_size texture =
   let pw = allocate float 0.0 in
   let ph = allocate float 0.0 in
   if not (sdl_get_texture_size texture pw ph)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  (!@ pw, !@ ph)
+  { width = !@ pw; height = !@ ph }
 
 (* --- LockTexture / UnlockTexture --- *)
 let sdl_lock_texture =
@@ -550,7 +658,7 @@ let with_locked_texture texture ?rect f =
     match rect with
     | Some r -> Sdl3_video.Rect.h r
     | None ->
-        let _w, h = get_texture_size texture in
+        let { height = h; _ } = get_texture_size texture in
         int_of_float h
   in
   let size = pitch * height in
@@ -558,7 +666,7 @@ let with_locked_texture texture ?rect f =
   let addr = Int64.to_nativeint (Signed.Int64.to_int64 (sdl3_ptr_addr pix_ptr)) in
   let pixels = sdl3_bigarray_of_ptr addr size in
   try
-    f (pixels, pitch);
+    f { pixels; pitch };
     unlock_texture texture
   with e ->
     unlock_texture texture;
@@ -569,7 +677,7 @@ let sdl_set_texture_blend_mode =
   foreign "SDL_SetTextureBlendMode" (ptr void @-> uint32_t @-> returning bool)
 
 let set_texture_blend_mode texture mode =
-  if not (sdl_set_texture_blend_mode texture (Unsigned.UInt32.of_int mode))
+  if not (sdl_set_texture_blend_mode texture (Unsigned.UInt32.of_int (blend_mode_to_int mode)))
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
 let sdl_get_texture_blend_mode =
@@ -579,14 +687,14 @@ let get_texture_blend_mode texture =
   let p = allocate uint32_t Unsigned.UInt32.zero in
   if not (sdl_get_texture_blend_mode texture p)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  Unsigned.UInt32.to_int !@ p
+  blend_mode_of_int (Unsigned.UInt32.to_int !@ p)
 
 (* --- SetTextureScaleMode / GetTextureScaleMode --- *)
 let sdl_set_texture_scale_mode =
   foreign "SDL_SetTextureScaleMode" (ptr void @-> int @-> returning bool)
 
 let set_texture_scale_mode texture mode =
-  if not (sdl_set_texture_scale_mode texture mode)
+  if not (sdl_set_texture_scale_mode texture (scale_mode_to_int mode))
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
 let sdl_get_texture_scale_mode =
@@ -596,4 +704,4 @@ let get_texture_scale_mode texture =
   let p = allocate int 0 in
   if not (sdl_get_texture_scale_mode texture p)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  !@ p
+  scale_mode_of_int !@ p
