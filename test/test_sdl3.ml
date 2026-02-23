@@ -133,6 +133,29 @@ let test_audio_pull () =
   quit ();
   check bool "pull callback invoked" true !callback_invoked
 
+let test_render_smoke () =
+  init Init.(video + events);
+  let w, r = Render.create_window_and_renderer "render_test" 320 240 Video.Window.none in
+  Render.set_draw_color r 255 0 0 255;
+  Render.render_clear r;
+  Render.render_present r;
+  Render.destroy_renderer r;
+  Video.destroy_window w;
+  quit ()
+
+let test_texture_from_surface () =
+  init Init.(video + events);
+  let w, r = Render.create_window_and_renderer "tex_test" 64 64 Video.Window.none in
+  let surf = Surface.create_surface 32 32 Surface.Pixel_format.rgba8888 in
+  let tex = Render.create_texture_from_surface r surf in
+  Surface.destroy_surface surf;
+  Render.render_texture r tex ();
+  Render.render_present r;
+  Render.destroy_texture tex;
+  Render.destroy_renderer r;
+  Video.destroy_window w;
+  quit ()
+
 let () =
   run "SDL3"
     [
@@ -147,5 +170,9 @@ let () =
       ("audio", [
           test_case "push" `Quick test_audio;
           test_case "pull" `Quick test_audio_pull;
+        ]);
+      ("render", [
+          test_case "smoke" `Quick test_render_smoke;
+          test_case "texture_from_surface" `Quick test_texture_from_surface;
         ]);
     ]

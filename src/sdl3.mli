@@ -95,7 +95,7 @@ val get_revision : unit -> string
 module Video : sig
   type rect = Sdl3_video.rect
   type display_id = Sdl3_video.display_id
-  type window
+  type window = Sdl3_video.window
   type window_flags = Sdl3_video.window_flags
 
   val get_displays : unit -> display_id list
@@ -134,3 +134,5 @@ module Event : module type of Sdl3_events
 
 (** {1 Audio} *)
 module Audio : module type of Sdl3_audio
+module Surface : module type of Sdl3_surface
+module Render : module type of Sdl3_render

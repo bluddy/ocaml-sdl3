@@ -1,10 +1,13 @@
 (** SDL3 video: displays and windows. *)
 
+open Ctypes
+
 (** {1 Rect}
 
     Rect is a C-backed structure. Use [Rect.x], [Rect.y], [Rect.w], [Rect.h]
     to read fields; no OCaml record allocation. *)
-type rect
+type rect_tag
+type rect = rect_tag structure
 
 module Rect : sig
   val x : rect -> int
@@ -30,12 +33,12 @@ val get_display_bounds : display_id -> rect option
 (** [get_display_bounds id] returns the display bounds, or None on error. *)
 
 (** {1 Window} *)
-type window
+type window = unit Ctypes.ptr
 
 val window_of_ptr : unit Ctypes.ptr -> window
 (** Internal: construct window from raw pointer. *)
 
-type window_flags
+type window_flags = int64
 
 module Window : sig
   val none : window_flags

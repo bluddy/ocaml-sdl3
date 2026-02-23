@@ -1,6 +1,12 @@
 (** SDL surfaces: system-RAM pixel buffers. *)
 
-type surface
+type surface = unit Ctypes.ptr
+
+module Pixel_format : sig
+  val rgba8888 : int
+  val rgb24 : int
+  val rgb565 : int
+end
 
 val create_surface : int -> int -> int -> surface
 (** [create_surface w h format] allocates a new surface. Pixels are zeroed.

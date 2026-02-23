@@ -5,6 +5,12 @@ open Sdl3_consts
 (** Opaque surface pointer. *)
 type surface = unit ptr
 
+module Pixel_format = struct
+  let rgba8888 = sdl_pixelformat_rgba8888
+  let rgb24 = sdl_pixelformat_rgb24
+  let rgb565 = sdl_pixelformat_rgb565
+end
+
 (** SDL_Surface structure for accessing fields. *)
 type surface_tag
 let sdl_surface : surface_tag structure typ = structure "SDL_Surface"
@@ -59,11 +65,10 @@ let surface_of_ptr (p : surface) =
   coerce (ptr void) (ptr sdl_surface) p
 
 module Surface = struct
-  let w s = (surface_of_ptr s |-> _surface_w)
-  let h s = (surface_of_ptr s |-> _surface_h)
-  let pitch s = (surface_of_ptr s |-> _surface_pitch)
-  let format s =
-    Unsigned.UInt32.to_int (getf (!@ (surface_of_ptr s)) _surface_format)
-  (** [pixels s] returns raw C pointer; valid only while surface is locked. *)
-  let pixels s = (surface_of_ptr s |-> _surface_pixels)
+  let view s = !@ (surface_of_ptr s)
+  let w s = getf (view s) _surface_w
+  let h s = getf (view s) _surface_h
+  let pitch s = getf (view s) _surface_pitch
+  let format s = Unsigned.UInt32.to_int (getf (view s) _surface_format)
+  let pixels s = getf (view s) _surface_pixels
 end

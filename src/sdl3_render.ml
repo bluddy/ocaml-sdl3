@@ -1,8 +1,12 @@
+[@@@warning "-33"]
 open Ctypes
 open Foreign
 open Sdl3_consts
 open Sdl3_video
 open Sdl3_surface
+
+(** SDL_Rect - same C struct as Video, obtained by name for make. *)
+let sdl_rect = structure "SDL_Rect"
 
 (** Opaque renderer and texture pointers. *)
 type renderer = unit ptr
@@ -32,6 +36,8 @@ module FRect = struct
   let y r = getf r _frect_y
   let w r = getf r _frect_w
   let h r = getf r _frect_h
+  (* [set_x] etc. are in the interface for external mutation. *)
+  [@@@warning "-32"]
   let set_x r v = setf r _frect_x v
   let set_y r v = setf r _frect_y v
   let set_w r v = setf r _frect_w v
@@ -48,10 +54,10 @@ module FRect = struct
   (** Convert SDL_Rect to SDL_FRect (OCaml-side; SDL_RectToFRect is inline). *)
   let of_rect (r : rect) =
     let r' = Ctypes.make sdl_frect in
-    setf r' _frect_x (float (Sdl3_video.Rect.x r));
-    setf r' _frect_y (float (Sdl3_video.Rect.y r));
-    setf r' _frect_w (float (Sdl3_video.Rect.w r));
-    setf r' _frect_h (float (Sdl3_video.Rect.h r));
+    setf r' _frect_x (Float.of_int (Sdl3_video.Rect.x r));
+    setf r' _frect_y (Float.of_int (Sdl3_video.Rect.y r));
+    setf r' _frect_w (Float.of_int (Sdl3_video.Rect.w r));
+    setf r' _frect_h (Float.of_int (Sdl3_video.Rect.h r));
     r'
 end
 
@@ -70,7 +76,8 @@ let sdl_create_window_and_renderer =
     (string @-> int @-> int @-> uint64_t @-> ptr (ptr void) @-> ptr (ptr void)
        @-> returning bool)
 
-let create_window_and_renderer title w h flags =
+let create_window_and_renderer (title : string) (w : int) (h : int)
+    (flags : Sdl3_video.window_flags) : Sdl3_video.window * renderer =
   let win_ptr = allocate (ptr void) (from_voidp void null) in
   let ren_ptr = allocate (ptr void) (from_voidp void null) in
   if not (sdl_create_window_and_renderer title w h
@@ -80,7 +87,7 @@ let create_window_and_renderer title w h flags =
   let r' = !@ ren_ptr in
   if is_null w' || is_null r' then
     raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  (w', r')
+  (Sdl3_video.window_of_ptr w', (r' : renderer))
 
 let sdl_create_renderer =
   foreign "SDL_CreateRenderer" (ptr void @-> string_opt @-> returning (ptr void))
@@ -185,8 +192,8 @@ let sdl_render_texture =
     (ptr void @-> ptr void @-> ptr sdl_frect @-> ptr sdl_frect @-> returning bool)
 
 let render_texture renderer texture ?srcrect ?dstrect () =
-  let src = match srcrect with None -> coerce (ptr sdl_frect) (ptr sdl_frect) null | Some r -> addr r in
-  let dst = match dstrect with None -> coerce (ptr sdl_frect) (ptr sdl_frect) null | Some r -> addr r in
+  let src = match srcrect with None -> coerce (ptr void) (ptr sdl_frect) null | Some r -> addr r in
+  let dst = match dstrect with None -> coerce (ptr void) (ptr sdl_frect) null | Some r -> addr r in
   if not (sdl_render_texture renderer texture src dst)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
@@ -196,9 +203,9 @@ let sdl_render_texture_rotated =
        @-> ptr sdl_fpoint @-> int @-> returning bool)
 
 let render_texture_rotated renderer texture ?srcrect ?dstrect angle ?center flip =
-  let src = match srcrect with None -> coerce (ptr sdl_frect) (ptr sdl_frect) null | Some r -> addr r in
-  let dst = match dstrect with None -> coerce (ptr sdl_frect) (ptr sdl_frect) null | Some r -> addr r in
-  let ctr = match center with None -> coerce (ptr sdl_fpoint) (ptr sdl_fpoint) null | Some p -> addr p in
+  let src = match srcrect with None -> coerce (ptr void) (ptr sdl_frect) null | Some r -> addr r in
+  let dst = match dstrect with None -> coerce (ptr void) (ptr sdl_frect) null | Some r -> addr r in
+  let ctr = match center with None -> coerce (ptr void) (ptr sdl_fpoint) null | Some p -> addr p in
   if not (sdl_render_texture_rotated renderer texture src dst angle ctr flip)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
@@ -228,33 +235,33 @@ let render_fill_rect renderer r =
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
 let sdl_set_render_viewport =
-  foreign "SDL_SetRenderViewport" (ptr void @-> ptr Sdl3_video.sdl_rect @-> returning bool)
+  foreign "SDL_SetRenderViewport" (ptr void @-> ptr void @-> returning bool)
 
-let set_viewport renderer rect =
-  if not (sdl_set_render_viewport renderer (addr rect))
+let set_viewport (renderer : renderer) (rect : Sdl3_video.rect) =
+  if not (sdl_set_render_viewport renderer (to_voidp (addr rect)))
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
 let sdl_get_render_viewport =
-  foreign "SDL_GetRenderViewport" (ptr void @-> ptr Sdl3_video.sdl_rect @-> returning bool)
+  foreign "SDL_GetRenderViewport" (ptr void @-> ptr void @-> returning bool)
 
 let get_viewport renderer =
-  let r = Ctypes.make Sdl3_video.sdl_rect in
-  if not (sdl_get_render_viewport renderer (addr r))
+  let r = Ctypes.make sdl_rect in
+  if not (sdl_get_render_viewport renderer (to_voidp (addr r)))
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   r
 
 let sdl_set_render_clip_rect =
-  foreign "SDL_SetRenderClipRect" (ptr void @-> ptr Sdl3_video.sdl_rect @-> returning bool)
+  foreign "SDL_SetRenderClipRect" (ptr void @-> ptr void @-> returning bool)
 
-let set_clip_rect renderer rect =
-  if not (sdl_set_render_clip_rect renderer (addr rect))
+let set_clip_rect (renderer : renderer) (rect : Sdl3_video.rect) =
+  if not (sdl_set_render_clip_rect renderer (to_voidp (addr rect)))
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
 let sdl_get_render_clip_rect =
-  foreign "SDL_GetRenderClipRect" (ptr void @-> ptr Sdl3_video.sdl_rect @-> returning bool)
+  foreign "SDL_GetRenderClipRect" (ptr void @-> ptr void @-> returning bool)
 
 let get_clip_rect renderer =
-  let r = Ctypes.make Sdl3_video.sdl_rect in
-  if not (sdl_get_render_clip_rect renderer (addr r))
+  let r = Ctypes.make sdl_rect in
+  if not (sdl_get_render_clip_rect renderer (to_voidp (addr r)))
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   r
