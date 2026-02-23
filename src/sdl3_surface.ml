@@ -64,11 +64,31 @@ let unlock_surface = foreign "SDL_UnlockSurface" (ptr void @-> returning void)
 let surface_of_ptr (p : surface) =
   coerce (ptr void) (ptr sdl_surface) p
 
+let sdl3_ptr_addr = foreign "sdl3_ptr_addr" (ptr void @-> returning int64_t)
+
+external sdl3_bigarray_of_ptr : nativeint -> int -> (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+  = "sdl3_bigarray_of_ptr"
+
+let with_locked_surface surface f =
+  lock_surface surface;
+  let view = !@ (surface_of_ptr surface) in
+  let pitch = getf view _surface_pitch in
+  let h = getf view _surface_h in
+  let pix_ptr = getf view _surface_pixels in
+  let size = pitch * h in
+  let addr = Int64.to_nativeint (Signed.Int64.to_int64 (sdl3_ptr_addr pix_ptr)) in
+  let pixels = sdl3_bigarray_of_ptr addr size in
+  try
+    f (pixels, pitch);
+    unlock_surface surface
+  with e ->
+    unlock_surface surface;
+    raise e
+
 module Surface = struct
   let view s = !@ (surface_of_ptr s)
   let w s = getf (view s) _surface_w
   let h s = getf (view s) _surface_h
   let pitch s = getf (view s) _surface_pitch
   let format s = Unsigned.UInt32.to_int (getf (view s) _surface_format)
-  let pixels s = getf (view s) _surface_pixels
 end

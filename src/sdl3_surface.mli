@@ -1,6 +1,6 @@
 (** SDL surfaces: system-RAM pixel buffers. *)
 
-type surface = unit Ctypes.ptr
+type surface
 
 module Pixel_format : sig
   val rgba8888 : int
@@ -29,18 +29,16 @@ val destroy_surface : surface -> unit
 val load_bmp : string -> surface
 (** Loads a BMP file. Raises [Sdl_error] on failure. *)
 
-val lock_surface : surface -> unit
-(** Locks the surface for pixel access. Required before reading/writing
-    [Surface.pixels]. Raises on failure. *)
+val with_locked_surface :
+  surface -> ((int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t * int -> unit) -> unit
+(** [with_locked_surface s f] locks the surface, calls [f (pixels, pitch)],
+    then unlocks. [pixels] is a 1D byte Bigarray of size [pitch * height],
+    valid only during the callback. *)
 
-val unlock_surface : surface -> unit
-(** Unlocks the surface. *)
-
-(** Surface field accessors. [pixels] is valid only while locked. *)
+(** Surface field accessors. *)
 module Surface : sig
   val w : surface -> int
   val h : surface -> int
   val pitch : surface -> int
   val format : surface -> int
-  val pixels : surface -> unit Ctypes.ptr
 end
