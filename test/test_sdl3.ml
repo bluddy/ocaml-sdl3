@@ -90,7 +90,7 @@ let test_events () =
   check bool "event poll" true true
 
 let test_audio () =
-  init Init.(audio + video);
+  init Init.audio;
   let stream =
     Audio.open_audio_device_stream
       ~device_id:Audio.Device.default_playback
@@ -104,10 +104,34 @@ let test_audio () =
     Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.c_layout 4096
   in
   Audio.put_audio_stream_data stream buf ~pos:0 ~len:4096;
-  let avail = Audio.get_audio_stream_available stream in
-  check bool "stream has data" true (avail >= 0);
+  check int "queued bytes" 4096 (Audio.get_audio_stream_queued stream);
   Audio.destroy_audio_stream stream;
   quit ()
+
+let test_audio_pull () =
+  init Init.audio;
+  let stream =
+    Audio.open_audio_device_stream
+      ~device_id:Audio.Device.default_playback
+      ~format:Audio.Format.s16
+      ~channels:2
+      ~freq:44100
+      ()
+  in
+  let callback_invoked = ref false in
+  let supply_buf =
+    Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.c_layout 1024
+  in
+  Audio.set_audio_stream_get_callback stream
+    (Some
+       (fun _s ~additional_amount:_ ~total_amount:_ ->
+         callback_invoked := true;
+         Audio.put_audio_stream_data stream supply_buf ~pos:0 ~len:1024));
+  Audio.resume_audio_stream_device stream;
+  ignore (Unix.sleepf 0.05);
+  Audio.destroy_audio_stream stream;
+  quit ();
+  check bool "pull callback invoked" true !callback_invoked
 
 let () =
   run "SDL3"
@@ -120,5 +144,8 @@ let () =
       ("window", [ test_case "window" `Quick test_window ]);
       ("displays", [ test_case "displays" `Quick test_displays ]);
       ("events", [ test_case "events" `Quick test_events ]);
-      ("audio", [ test_case "audio" `Quick test_audio ]);
+      ("audio", [
+          test_case "push" `Quick test_audio;
+          test_case "pull" `Quick test_audio_pull;
+        ]);
     ]

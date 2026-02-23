@@ -183,7 +183,8 @@ let sdl_mousewheel_normal = 0
 let sdl_mousewheel_flipped = 1
 
 (** {1 Audio}
-    Default device IDs (SDL_AudioDeviceID); pass to open_audio_device_stream *)
+    SDL default-device sentinels (SDL_AudioDeviceID). Use with
+    [Unsigned.UInt32.of_int32] to pass to SDL; e.g. 0xFFFFFFFFl -> playback. *)
 let sdl_audio_device_default_playback = 0xFFFFFFFFl
 let sdl_audio_device_default_recording = 0xFFFFFFFEl
 

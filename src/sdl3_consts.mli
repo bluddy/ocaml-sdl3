@@ -167,7 +167,8 @@ val sdl_event_last : int
 val sdl_mousewheel_normal : int
 val sdl_mousewheel_flipped : int
 
-(** {1 Audio} *)
+(** {1 Audio}
+    Default-device sentinels: 0xFFFFFFFF and 0xFFFFFFFE as int32. *)
 val sdl_audio_device_default_playback : int32
 val sdl_audio_device_default_recording : int32
 

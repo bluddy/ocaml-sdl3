@@ -17,15 +17,19 @@
     For streaming large audio files, the pull model is necessary: use
     [set_audio_stream_get_callback]. When SDL needs data, your callback runs;
     read the next chunk and call [put_audio_stream_data] from inside. More
-    challenging: the callback runs from SDL's audio thread, so avoid allocating
-    or blocking; use pre-allocated Bigarrays.
+    challenging: the callback runs from SDL's audio thread (avoid allocating
+    or blocking; use pre-allocated Bigarrays).
 
-    {2 Zero-copy and [on_complete]}
+    {2 Zero-copy}
 
     [put_audio_stream_data_no_copy] avoids copying but the buffer must stay
-    valid until SDL consumes it. [on_complete] would signal when a buffer can be
-    reused, but the OCaml callback may be collected before SDL invokes it.
-    Prefer [put_audio_stream_data] or the pull model. *)
+    valid until SDL consumes it (stream destroyed or cleared). Prefer
+    [put_audio_stream_data] or the pull model.
+
+    {2 Callback safety}
+
+    Even with the runtime lock, callbacks must stay short and non-blocking to
+    avoid audio dropouts. *)
 
 type stream
 (** Opaque audio stream handle. *)
@@ -35,7 +39,10 @@ type buffer = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Arra
 
 module Device : sig
   val default_playback : int32
+  (** SDL sentinel for default playback device (0xFFFFFFFF as uint32). *)
+
   val default_recording : int32
+  (** SDL sentinel for default recording device (0xFFFFFFFE as uint32). *)
 end
 
 module Format : sig
@@ -65,15 +72,8 @@ val put_audio_stream_data : stream -> buffer -> pos:int -> len:int -> unit
 (** Push model: copies buffer into stream. Use for small to medium files. *)
 
 val put_audio_stream_data_no_copy :
-  stream ->
-  buffer ->
-  pos:int ->
-  len:int ->
-  ?on_complete:(unit -> unit) ->
-  unit ->
-  unit
-(** Zero-copy push. Buffer must remain valid until SDL consumes it. [on_complete]
-    may be collected before SDL invokes it; prefer [put_audio_stream_data]. *)
+  stream -> buffer -> pos:int -> len:int -> unit
+(** Zero-copy push. Buffer must remain valid until SDL consumes it. *)
 
 val get_audio_stream_data : stream -> buffer -> pos:int -> len:int -> int
 (** Returns bytes read. *)

@@ -33,13 +33,6 @@ let audio_stream_callback =
     ~thread_registration:true
     (ptr void @-> ptr void @-> int @-> int @-> returning void)
 
-(* Completion callback: (userdata, buf, buflen) -> void. Same. *)
-let audio_stream_data_complete_callback =
-  Foreign.funptr_opt
-    ~runtime_lock:true
-    ~thread_registration:true
-    (ptr void @-> ptr void @-> int @-> returning void)
-
 let sdl_open_audio_device_stream =
   foreign "SDL_OpenAudioDeviceStream"
     (uint32_t @-> ptr audio_spec @-> audio_stream_callback @-> ptr void
@@ -51,10 +44,7 @@ let sdl_put_audio_stream_data =
 
 let sdl_put_audio_stream_data_no_copy =
   foreign "SDL_PutAudioStreamDataNoCopy"
-    (ptr void @-> ptr void @-> int
-    @-> audio_stream_data_complete_callback
-    @-> ptr void
-    @-> returning bool)
+    (ptr void @-> ptr void @-> int @-> ptr void @-> ptr void @-> returning bool)
 
 let sdl_get_audio_stream_data =
   foreign "SDL_GetAudioStreamData"
@@ -95,6 +85,16 @@ let sdl_set_audio_stream_put_callback =
 let raise_on_false f =
   if not (f ()) then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
+let wrap_stream_callback cb =
+  match cb with
+  | None -> None
+  | Some f ->
+      Some
+        (fun _userdata stream additional total ->
+          f (stream_of_ptr (from_voidp void stream))
+            ~additional_amount:additional ~total_amount:total;
+          ())
+
 let buf_ptr ?(pos = 0) buffer =
   let ptr = bigarray_start array1 buffer in
   to_voidp (ptr +@ pos)
@@ -103,16 +103,7 @@ let buf_ptr ?(pos = 0) buffer =
 
 let open_audio_device_stream ~device_id ~format ~channels ~freq ?callback () =
   let spec = make_spec ~format ~channels ~freq in
-  let cb =
-    match callback with
-    | None -> None
-    | Some f ->
-        Some
-          (fun _userdata stream additional total ->
-            f (stream_of_ptr (from_voidp void stream))
-              ~additional_amount:additional ~total_amount:total;
-            ())
-  in
+  let cb = wrap_stream_callback callback in
   let stream =
     sdl_open_audio_device_stream
       (Unsigned.UInt32.of_int32 device_id)
@@ -127,13 +118,16 @@ let put_audio_stream_data stream buffer ~pos ~len =
   if not (sdl_put_audio_stream_data (ptr_of_stream stream) buf len) then
     raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
-let put_audio_stream_data_no_copy stream buffer ~pos ~len ?on_complete () =
+let put_audio_stream_data_no_copy stream buffer ~pos ~len =
   let buf = buf_ptr ~pos buffer in
-  let cb = Option.map (fun f -> (fun _ _ _ -> f ())) on_complete in
-  if not (sdl_put_audio_stream_data_no_copy (ptr_of_stream stream) buf len cb null)
+  if not
+       (sdl_put_audio_stream_data_no_copy
+          (ptr_of_stream stream)
+          buf
+          len
+          null
+          null)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
-  (* Note: when on_complete is used, the funptr must outlive SDL's use.
-     Avoid freeing the buffer before the stream consumes it. *)
 
 let get_audio_stream_data stream buffer ~pos ~len =
   let buf = buf_ptr ~pos buffer in
@@ -173,32 +167,16 @@ let audio_stream_device_paused stream =
   sdl_audio_stream_device_paused (ptr_of_stream stream)
 
 let set_audio_stream_get_callback stream cb =
-  let fn =
-    match cb with
-    | None -> None
-    | Some f ->
-        Some
-          (fun _userdata stream additional total ->
-            f (stream_of_ptr (from_voidp void stream))
-              ~additional_amount:additional ~total_amount:total;
-            ())
-  in
   raise_on_false (fun () ->
-      sdl_set_audio_stream_get_callback (ptr_of_stream stream) fn null)
+      sdl_set_audio_stream_get_callback (ptr_of_stream stream)
+        (wrap_stream_callback cb)
+        null)
 
 let set_audio_stream_put_callback stream cb =
-  let fn =
-    match cb with
-    | None -> None
-    | Some f ->
-        Some
-          (fun _userdata stream additional total ->
-            f (stream_of_ptr (from_voidp void stream))
-              ~additional_amount:additional ~total_amount:total;
-            ())
-  in
   raise_on_false (fun () ->
-      sdl_set_audio_stream_put_callback (ptr_of_stream stream) fn null)
+      sdl_set_audio_stream_put_callback (ptr_of_stream stream)
+        (wrap_stream_callback cb)
+        null)
 
 module Device = struct
   let default_playback = sdl_audio_device_default_playback
