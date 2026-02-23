@@ -1,4 +1,4 @@
-(** SDL surfaces: system-RAM pixel buffers. *)
+(** SDL surfaces: system-RAM pixel buffers. Freed automatically when no longer referenced. *)
 
 type surface
 
@@ -20,11 +20,9 @@ val create_surface_from :
   int ->
   surface
 (** [create_surface_from w h format pixels pitch] wraps existing pixel data.
-    No copy is made; surface must be destroyed before freeing [pixels].
+    No copy is made; [pixels] must outlive the surface. Surfaces are freed
+    automatically when no longer referenced.
     [pixels = None] with [pitch = 0] creates a surface to fill in later. *)
-
-val destroy_surface : surface -> unit
-(** Frees the surface. Safe to pass an already-destroyed surface (no-op). *)
 
 val load_bmp : string -> surface
 (** Loads a BMP file. Raises [Sdl_error] on failure. *)

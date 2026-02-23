@@ -148,7 +148,6 @@ let test_texture_from_surface () =
   let w, r = Render.create_window_and_renderer "tex_test" 64 64 Video.Window.none in
   let surf = Surface.create_surface 32 32 Surface.Pixel_format.rgba8888 in
   let tex = Render.create_texture_from_surface r surf in
-  Surface.destroy_surface surf;
   Render.render_texture r tex ();
   Render.render_present r;
   Render.destroy_texture tex;

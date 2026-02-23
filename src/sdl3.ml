@@ -95,8 +95,8 @@ let get_version () =
 (** {1 Events} *)
 module Event = Sdl3_events
 
-(** {1 Audio} *)
-module Audio = Sdl3_audio
+(** {1 Audio} *)o
+
 module Surface = Sdl3_surface
 module Render = Sdl3_render
 
