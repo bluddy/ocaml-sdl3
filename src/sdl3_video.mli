@@ -39,21 +39,35 @@ type window = unit Ctypes.ptr
 val window_of_ptr : unit Ctypes.ptr -> window
 (** Internal: construct window from raw pointer. *)
 
-type window_flags = int64
+type window_flag =
+  | Fullscreen
+  | Opengl
+  | Hidden
+  | Borderless
+  | Resizable
+  | Minimized
+  | Maximized
+  | Vulkan
+  | Metal
 
 module Window : sig
-  val none : window_flags
-  val fullscreen : window_flags
-  val opengl : window_flags
-  val hidden : window_flags
-  val borderless : window_flags
-  val resizable : window_flags
-  val vulkan : window_flags
-  val metal : window_flags
-  val ( + ) : window_flags -> window_flags -> window_flags
+  type flag = window_flag
+  val all : flag list
+  val fullscreen : flag
+  val opengl : flag
+  val hidden : flag
+  val borderless : flag
+  val resizable : flag
+  val minimized : flag
+  val maximized : flag
+  val vulkan : flag
+  val metal : flag
 end
 
-val create_window : title:string -> width:int -> height:int -> flags:window_flags -> window
+val window_flags_to_int64 : window_flag list -> int64
+(** Internal: combine flags to SDL's Uint64. *)
+
+val create_window : title:string -> width:int -> height:int -> flags:window_flag list -> window
 (** [create_window ~title ~width ~height ~flags] creates a window. Raises [Sdl_error] on failure. *)
 
 val destroy_window : window -> unit

@@ -4,7 +4,7 @@
     zero-copy C access. Allocate with [Bigarray.Array1.create Bigarray.int8_unsigned
     Bigarray.c_layout len].
 
-    Call [Sdl3.init Sdl3.Init.audio] before using audio.
+    Call [Sdl3.init [ Sdl3.Init.audio ]] before using audio.
     Device starts paused; call [resume_audio_stream_device] to start playback.
 
     {2 Push model (small to medium files)}

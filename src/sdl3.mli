@@ -17,28 +17,36 @@ val set_main_ready : unit -> unit
     Required on some platforms (e.g. bundled apps). *)
 
 (** {1 Init} *)
+type init_flag =
+  | Audio
+  | Video
+  | Joystick
+  | Haptic
+  | Gamepad
+  | Events
+  | Sensor
+  | Camera
+
 module Init : sig
-  type t
-  val ( + ) : t -> t -> t
-  val ( - ) : t -> t -> t
-  val test : t -> t -> bool
-  val nothing : t
-  val audio : t
-  val video : t
-  val joystick : t
-  val haptic : t
-  val gamepad : t
-  val events : t
-  val sensor : t
-  val camera : t
+  type flag = init_flag
+  val all : flag list
+  val test : flag list -> flag -> bool
+  val audio : flag
+  val video : flag
+  val joystick : flag
+  val haptic : flag
+  val gamepad : flag
+  val events : flag
+  val sensor : flag
+  val camera : flag
 end
-val init : Init.t -> unit
-val init_subsystem : Init.t -> unit
+val init : init_flag list -> unit
+val init_subsystem : init_flag list -> unit
 val quit : unit -> unit
-val quit_subsystem : Init.t -> unit
-val was_init : Init.t option -> Init.t
+val quit_subsystem : init_flag list -> unit
+val was_init : init_flag list option -> init_flag list
 (** [was_init None] returns currently initialized flags.
-    [was_init (Some mask)] returns flags matching [mask]. *)
+    [was_init (Some flags)] returns which of [flags] are initialized. *)
 
 (** {1 Hints} *)
 type hint_priority = Hint_default | Hint_normal | Hint_override
@@ -105,7 +113,7 @@ module Video : sig
   type rect = Sdl3_video.rect
   type display_id = Sdl3_video.display_id
   type window = Sdl3_video.window
-  type window_flags = Sdl3_video.window_flags
+  type window_flag = Sdl3_video.window_flag
 
   val get_displays : unit -> display_id list
   val get_display_name : display_id -> string option
@@ -120,18 +128,20 @@ module Video : sig
   end
 
   module Window : sig
-    val ( + ) : window_flags -> window_flags -> window_flags
-    val none : window_flags
-    val fullscreen : window_flags
-    val opengl : window_flags
-    val hidden : window_flags
-    val borderless : window_flags
-    val resizable : window_flags
-    val vulkan : window_flags
-    val metal : window_flags
+    type flag = Sdl3_video.window_flag
+    val all : flag list
+    val fullscreen : flag
+    val opengl : flag
+    val hidden : flag
+    val borderless : flag
+    val resizable : flag
+    val minimized : flag
+    val maximized : flag
+    val vulkan : flag
+    val metal : flag
   end
 
-  val create_window : title:string -> width:int -> height:int -> flags:window_flags -> window
+  val create_window : title:string -> width:int -> height:int -> flags:window_flag list -> window
   val destroy_window : window -> unit
   val get_window_id : window -> int32
   val get_window_from_id : int32 -> window option

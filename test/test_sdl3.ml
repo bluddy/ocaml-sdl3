@@ -5,14 +5,14 @@ open Sdl3
 open Alcotest
 
 let test_init () =
-  init Init.(video + events);
+  init [ Init.video; Init.events ];
   check bool "video init" true (Init.test (was_init None) Init.video);
   check bool "events init" true (Init.test (was_init None) Init.events);
   quit ();
-  check bool "video quit" false (Init.test (was_init (Some Init.video)) Init.video)
+  check bool "video quit" false (Init.test (was_init (Some [ Init.video ])) Init.video)
 
 let test_hints () =
-  init Init.events;
+  init [ Init.events ];
   let hint = "sdl3_ocaml_test_hint_" ^ string_of_int (Random.int 0xFFFFFF) in
   check bool "set hint" true (set_hint hint "1");
   check (option string) "get hint" (Some "1") (get_hint hint);
@@ -48,8 +48,8 @@ let test_error () =
   check string "error cleared" "" (get_error ())
 
 let test_window () =
-  init Init.(video + events);
-  let w = Video.create_window ~title:"test" ~width:320 ~height:240 ~flags:Video.Window.none in
+  init [ Init.video; Init.events ];
+  let w = Video.create_window ~title:"test" ~width:320 ~height:240 ~flags:[] in
   let id = Video.get_window_id w in
   check bool "window id" true (id <> 0l);
   (match Video.get_window_from_id id with
@@ -63,7 +63,7 @@ let test_window () =
   quit ()
 
 let test_displays () =
-  init Init.(video + events);
+  init [ Init.video; Init.events ];
   let displays = Video.get_displays () in
   check bool "has displays" true (List.length displays > 0);
   List.iteri
@@ -84,9 +84,9 @@ let test_displays () =
   quit ()
 
 let test_events () =
-  init Init.(video + events);
+  init [ Init.video; Init.events ];
   let w =
-    Video.create_window ~title:"events_test" ~width:100 ~height:100 ~flags:Video.Window.none
+    Video.create_window ~title:"events_test" ~width:100 ~height:100 ~flags:[]
   in
   for _ = 1 to 3 do
     ignore (Event.poll ())
@@ -96,7 +96,7 @@ let test_events () =
   check bool "event poll" true true
 
 let test_audio () =
-  init Init.audio;
+  init [ Init.audio ];
   let stream =
     Audio.open_audio_device_stream
       ~device_id:Audio.Device.default_playback
@@ -115,7 +115,7 @@ let test_audio () =
   quit ()
 
 let test_audio_pull () =
-  init Init.audio;
+  init [ Init.audio ];
   let stream =
     Audio.open_audio_device_stream
       ~device_id:Audio.Device.default_playback
@@ -140,10 +140,10 @@ let test_audio_pull () =
   check bool "pull callback invoked" true !callback_invoked
 
 let test_render_smoke () =
-  init Init.(video + events);
+  init [ Init.video; Init.events ];
   let w, r =
     Render.create_window_and_renderer ~title:"render_test" ~width:320 ~height:240
-      Video.Window.none
+      []
   in
   Render.set_draw_color r ~r:255 ~g:0 ~b:0 ~a:255;
   Render.render_clear r;
@@ -153,9 +153,9 @@ let test_render_smoke () =
   quit ()
 
 let test_texture_from_surface () =
-  init Init.(video + events);
+  init [ Init.video; Init.events ];
   let w, r =
-    Render.create_window_and_renderer ~title:"tex_test" ~width:64 ~height:64 Video.Window.none
+    Render.create_window_and_renderer ~title:"tex_test" ~width:64 ~height:64 []
   in
   let surf =
     Surface.create_surface ~width:32 ~height:32 ~format:Surface.Pixel_format.rgba8888

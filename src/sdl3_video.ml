@@ -67,25 +67,57 @@ module Rect = struct
     r
 end
 
-type window_flags = int64
+type window_flag =
+  | Fullscreen
+  | Opengl
+  | Hidden
+  | Borderless
+  | Resizable
+  | Minimized
+  | Maximized
+  | Vulkan
+  | Metal
+
+let window_flag_to_int64 = function
+  | Fullscreen -> sdl_window_fullscreen
+  | Opengl -> sdl_window_opengl
+  | Hidden -> sdl_window_hidden
+  | Borderless -> sdl_window_borderless
+  | Resizable -> sdl_window_resizable
+  | Minimized -> sdl_window_minimized
+  | Maximized -> sdl_window_maximized
+  | Vulkan -> sdl_window_vulkan
+  | Metal -> sdl_window_metal
+
+let window_flags_to_int64 flags =
+  List.fold_left
+    (fun acc f -> Int64.logor acc (window_flag_to_int64 f))
+    0L flags
 
 module Window = struct
-  let ( + ) = Int64.logor
-  let none = 0L
-  let fullscreen = sdl_window_fullscreen
-  let opengl = sdl_window_opengl
-  let hidden = sdl_window_hidden
-  let borderless = sdl_window_borderless
-  let resizable = sdl_window_resizable
-  let vulkan = sdl_window_vulkan
-  let metal = sdl_window_metal
+  type flag = window_flag
+
+  let all : flag list =
+    [ Fullscreen; Opengl; Hidden; Borderless; Resizable; Minimized; Maximized; Vulkan; Metal ]
+
+  let fullscreen = Fullscreen
+  let opengl = Opengl
+  let hidden = Hidden
+  let borderless = Borderless
+  let resizable = Resizable
+  let minimized = Minimized
+  let maximized = Maximized
+  let vulkan = Vulkan
+  let metal = Metal
 end
 
 let sdl_create_window =
   foreign "SDL_CreateWindow" (string @-> int @-> int @-> uint64_t @-> returning (ptr void))
 
 let create_window ~title ~width ~height ~flags =
-  let wptr = sdl_create_window title width height (Unsigned.UInt64.of_int64 flags) in
+  let wptr =
+    sdl_create_window title width height (Unsigned.UInt64.of_int64 (window_flags_to_int64 flags))
+  in
   if is_null wptr then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   wptr
 

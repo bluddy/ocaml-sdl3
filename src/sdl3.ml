@@ -7,31 +7,77 @@ let get_error = Sdl3_error.get_error
 let clear_error = Sdl3_error.clear_error
 let set_error = Sdl3_error.set_error
 
+type init_flag =
+  | Audio
+  | Video
+  | Joystick
+  | Haptic
+  | Gamepad
+  | Events
+  | Sensor
+  | Camera
+
+let init_flag_to_int = function
+  | Audio -> sdl_init_audio
+  | Video -> sdl_init_video
+  | Joystick -> sdl_init_joystick
+  | Haptic -> sdl_init_haptic
+  | Gamepad -> sdl_init_gamepad
+  | Events -> sdl_init_events
+  | Sensor -> sdl_init_sensor
+  | Camera -> sdl_init_camera
+
+let init_flags_to_uint32 flags =
+  List.fold_left
+    (fun acc f ->
+      Unsigned.UInt32.logor acc (Unsigned.UInt32.of_int (init_flag_to_int f)))
+    Unsigned.UInt32.zero flags
+
+let init_flags_of_uint32 v =
+  let all =
+    [ Audio; Video; Joystick; Haptic; Gamepad; Events; Sensor; Camera ]
+  in
+  List.filter
+    (fun f ->
+      Unsigned.UInt32.(compare (logand v (of_int (init_flag_to_int f))) zero <> 0))
+    all
+
 module Init = struct
-  type t = Unsigned.UInt32.t
-  let of_int = Unsigned.UInt32.of_int
-  let ( + ) = Unsigned.UInt32.logor
-  let ( - ) f f' = Unsigned.UInt32.(logand f (lognot f'))
-  let test f m = Unsigned.UInt32.(compare (logand f m) zero <> 0)
-  let nothing = of_int 0
-  let audio = of_int sdl_init_audio
-  let video = of_int sdl_init_video
-  let joystick = of_int sdl_init_joystick
-  let haptic = of_int sdl_init_haptic
-  let gamepad = of_int sdl_init_gamepad
-  let events = of_int sdl_init_events
-  let sensor = of_int sdl_init_sensor
-  let camera = of_int sdl_init_camera
+  type flag = init_flag
+
+  let all : flag list =
+    [ Audio; Video; Joystick; Haptic; Gamepad; Events; Sensor; Camera ]
+
+  let test flags flag =
+    List.mem flag flags
+
+  let nothing = Unsigned.UInt32.zero
+  let audio = Audio
+  let video = Video
+  let joystick = Joystick
+  let haptic = Haptic
+  let gamepad = Gamepad
+  let events = Events
+  let sensor = Sensor
+  let camera = Camera
 end
 
 let sdl_init = foreign "SDL_Init" (uint32_t @-> returning bool)
 let sdl_init_subsystem = foreign "SDL_InitSubSystem" (uint32_t @-> returning bool)
-let init flags = if not (sdl_init flags) then raise (Sdl_error (get_error ()))
-let init_subsystem flags = if not (sdl_init_subsystem flags) then raise (Sdl_error (get_error ()))
+let init flags =
+  if not (sdl_init (init_flags_to_uint32 flags))
+  then raise (Sdl_error (get_error ()))
+let init_subsystem flags =
+  if not (sdl_init_subsystem (init_flags_to_uint32 flags))
+  then raise (Sdl_error (get_error ()))
 let quit = foreign "SDL_Quit" (void @-> returning void)
-let quit_subsystem = foreign "SDL_QuitSubSystem" (uint32_t @-> returning void)
+let sdl_quit_subsystem = foreign "SDL_QuitSubSystem" (uint32_t @-> returning void)
+let quit_subsystem flags =
+  sdl_quit_subsystem (init_flags_to_uint32 flags)
 let sdl_was_init = foreign "SDL_WasInit" (uint32_t @-> returning uint32_t)
-let was_init = function None -> sdl_was_init Init.nothing | Some f -> sdl_was_init f
+let was_init = function
+  | None -> init_flags_of_uint32 (sdl_was_init Init.nothing)
+  | Some flags -> init_flags_of_uint32 (sdl_was_init (init_flags_to_uint32 flags))
 
 type hint_priority = Hint_default | Hint_normal | Hint_override
 
@@ -164,7 +210,7 @@ module Video = struct
   type rect = Sdl3_video.rect
   type display_id = Sdl3_video.display_id
   type window = Sdl3_video.window
-  type window_flags = Sdl3_video.window_flags
+  type window_flag = Sdl3_video.window_flag
 
   let get_displays = Sdl3_video.get_displays
   let get_display_name = Sdl3_video.get_display_name

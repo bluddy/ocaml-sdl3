@@ -212,11 +212,12 @@ let sdl_create_window_and_renderer =
        @-> returning bool)
 
 let create_window_and_renderer ~title ~width ~height
-    (flags : Sdl3_video.window_flags) : Sdl3_video.window * renderer =
+    (flags : Sdl3_video.window_flag list) : Sdl3_video.window * renderer =
   let win_ptr = allocate (ptr void) (coerce (ptr void) (ptr void) null) in
   let ren_ptr = allocate (ptr void) (coerce (ptr void) (ptr void) null) in
   if not (sdl_create_window_and_renderer title width height
-            (Unsigned.UInt64.of_int64 flags) win_ptr ren_ptr)
+            (Unsigned.UInt64.of_int64 (Sdl3_video.window_flags_to_int64 flags))
+            win_ptr ren_ptr)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   let w' = !@ win_ptr in
   let r' = !@ ren_ptr in

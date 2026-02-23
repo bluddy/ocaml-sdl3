@@ -35,11 +35,11 @@ Tests run with `SDL_VIDEO_DRIVER=dummy` and `SDL_AUDIO_DRIVER=dummy` for headles
 open Sdl3
 
 let () =
-  init Init.(video + events);
+  init [ Init.video; Init.events ];
   log "Hello SDL3";
   let maj, min, patch = get_version () in
   Printf.printf "SDL %d.%d.%d\n" maj min patch;
-  let w = Video.create_window "Hi" 640 480 Video.Window.none in
+  let w = Video.create_window ~title:"Hi" ~width:640 ~height:480 ~flags:[] in
   (* Event loop: quit on Event.Type.quit or Event.Type.window_close_requested.
      Use per-field accessors (Event.Key.scancode, Event.Mouse_motion.x, etc.) for payload. *)
   let rec loop () =

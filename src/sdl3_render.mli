@@ -77,7 +77,7 @@ module Vertex : sig
 end
 
 val create_window_and_renderer :
-  title:string -> width:int -> height:int -> Sdl3_video.window_flags -> Sdl3_video.window * renderer
+  title:string -> width:int -> height:int -> Sdl3_video.window_flag list -> Sdl3_video.window * renderer
 val create_renderer : Sdl3_video.window -> ?name:string -> unit -> renderer
 val destroy_renderer : renderer -> unit
 val get_render_window : renderer -> Sdl3_video.window option

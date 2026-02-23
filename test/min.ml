@@ -3,12 +3,12 @@
 open Sdl3
 
 let () =
-  init Init.(video + events);
+  init [ Init.video; Init.events ];
   log "SDL3 initialized";
   let maj, min, patch = get_version () in
   log (Printf.sprintf "SDL version: %d.%d.%d" maj min patch);
   let w =
-    Video.create_window ~title:"SDL3" ~width:640 ~height:480 ~flags:Video.Window.none
+    Video.create_window ~title:"SDL3" ~width:640 ~height:480 ~flags:[]
   in
   let wid = Video.get_window_id w in
   log (Printf.sprintf "Window ID: %ld" wid);
