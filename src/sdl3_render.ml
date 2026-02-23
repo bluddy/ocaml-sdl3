@@ -1,12 +1,7 @@
-[@@@warning "-33"]
 open Ctypes
 open Foreign
-open Sdl3_consts
 open Sdl3_video
 open Sdl3_surface
-
-(** SDL_Rect - same C struct as Video, obtained by name for make. *)
-let sdl_rect = structure "SDL_Rect"
 
 (** Opaque renderer and texture pointers. *)
 type renderer = unit ptr
@@ -36,8 +31,6 @@ module FRect = struct
   let y r = getf r _frect_y
   let w r = getf r _frect_w
   let h r = getf r _frect_h
-  (* [set_x] etc. are in the interface for external mutation. *)
-  [@@@warning "-32"]
   let set_x r v = setf r _frect_x v
   let set_y r v = setf r _frect_y v
   let set_w r v = setf r _frect_w v
@@ -125,8 +118,8 @@ let sdl_create_window_and_renderer =
 
 let create_window_and_renderer (title : string) (w : int) (h : int)
     (flags : Sdl3_video.window_flags) : Sdl3_video.window * renderer =
-  let win_ptr = allocate (ptr void) (from_voidp void null) in
-  let ren_ptr = allocate (ptr void) (from_voidp void null) in
+  let win_ptr = allocate (ptr void) (coerce (ptr void) (ptr void) null) in
+  let ren_ptr = allocate (ptr void) (coerce (ptr void) (ptr void) null) in
   if not (sdl_create_window_and_renderer title w h
             (Unsigned.UInt64.of_int64 flags) win_ptr ren_ptr)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
@@ -217,9 +210,9 @@ let sdl_create_texture =
   foreign "SDL_CreateTexture"
     (ptr void @-> uint32_t @-> int @-> int @-> int @-> returning (ptr void))
 
-let create_texture renderer format access w h =
+let create_texture renderer ~format ~access ~width ~height =
   let p =
-    sdl_create_texture renderer (Unsigned.UInt32.of_int format) access w h
+    sdl_create_texture renderer (Unsigned.UInt32.of_int format) access width height
   in
   if is_null p then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   p
@@ -292,7 +285,7 @@ let sdl_get_render_viewport =
   foreign "SDL_GetRenderViewport" (ptr void @-> ptr void @-> returning bool)
 
 let get_viewport renderer =
-  let r = Ctypes.make sdl_rect in
+  let r = Sdl3_video.rect_alloc () in
   if not (sdl_get_render_viewport renderer (to_voidp (addr r)))
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   r
@@ -308,7 +301,7 @@ let sdl_get_render_clip_rect =
   foreign "SDL_GetRenderClipRect" (ptr void @-> ptr void @-> returning bool)
 
 let get_clip_rect renderer =
-  let r = Ctypes.make sdl_rect in
+  let r = Sdl3_video.rect_alloc () in
   if not (sdl_get_render_clip_rect renderer (to_voidp (addr r)))
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   r
@@ -349,8 +342,8 @@ let sdl_set_render_logical_presentation =
   foreign "SDL_SetRenderLogicalPresentation"
     (ptr void @-> int @-> int @-> int @-> returning bool)
 
-let set_render_logical_presentation renderer w h mode =
-  if not (sdl_set_render_logical_presentation renderer w h mode)
+let set_render_logical_presentation renderer ~width ~height ~mode =
+  if not (sdl_set_render_logical_presentation renderer width height mode)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
 let sdl_get_render_logical_presentation =
@@ -423,7 +416,7 @@ let sdl_render_geometry =
        @-> returning bool)
 
 let render_geometry renderer ?texture vertices indices =
-  let tex = match texture with None -> from_voidp void null | Some t -> t in
+  let tex = match texture with None -> coerce (ptr void) (ptr void) null | Some t -> t in
   let nv = Array.length vertices in
   let verts = CArray.of_list sdl_vertex (Array.to_list vertices) in
   let (idx_ptr, ni) =
@@ -445,7 +438,7 @@ let sdl_render_geometry_raw =
 
 let render_geometry_raw renderer ?texture ~xy ~xy_stride ~color ~color_stride
     ?uv ?(uv_stride = 0) ~num_vertices ?indices ?(size_indices = 4) () =
-  let tex = match texture with None -> from_voidp void null | Some t -> t in
+  let tex = match texture with None -> coerce (ptr void) (ptr void) null | Some t -> t in
   let uv_ptr, uv_str =
     match uv with
     | None -> (coerce (ptr void) (ptr float) null, 0)
@@ -478,7 +471,7 @@ let sdl_render_read_pixels =
 let render_read_pixels renderer ?rect () =
   let r =
     match rect with
-    | None -> from_voidp void null
+    | None -> coerce (ptr void) (ptr void) null
     | Some r -> to_voidp (addr r)
   in
   let s = sdl_render_read_pixels renderer r in
@@ -547,7 +540,7 @@ let with_locked_texture texture ?rect f =
     | None -> coerce (ptr void) (ptr void) null
     | Some r -> to_voidp (addr r)
   in
-  let ppix = allocate (ptr void) (from_voidp void null) in
+  let ppix = allocate (ptr void) (coerce (ptr void) (ptr void) null) in
   let ppitch = allocate int 0 in
   if not (sdl_lock_texture texture r ppix ppitch)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));

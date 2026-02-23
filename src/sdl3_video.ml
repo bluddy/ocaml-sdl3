@@ -49,6 +49,9 @@ let get_display_bounds id =
   else
     None
 
+(** Allocate a rect for use as C out-parameter. Contents are uninitialized. *)
+let rect_alloc () = make sdl_rect
+
 module Rect = struct
   let x r = getf r _rect_x
   let y r = getf r _rect_y

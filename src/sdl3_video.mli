@@ -1,13 +1,14 @@
 (** SDL3 video: displays and windows. *)
 
-open Ctypes
-
 (** {1 Rect}
 
     Rect is a C-backed structure. Use [Rect.x], [Rect.y], [Rect.w], [Rect.h]
     to read fields; no OCaml record allocation. *)
 type rect_tag
-type rect = rect_tag structure
+type rect = rect_tag Ctypes.structure
+
+val rect_alloc : unit -> rect
+(** Allocate a rect for use as C out-parameter (e.g. [get_viewport], [get_clip_rect]). *)
 
 module Rect : sig
   val x : rect -> int

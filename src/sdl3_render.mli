@@ -9,6 +9,10 @@ module FRect : sig
   val y : frect -> float
   val w : frect -> float
   val h : frect -> float
+  val set_x : frect -> float -> unit
+  val set_y : frect -> float -> unit
+  val set_w : frect -> float -> unit
+  val set_h : frect -> float -> unit
   val make : float -> float -> float -> float -> frect
   val of_rect : Sdl3_video.rect -> frect
 end
@@ -51,7 +55,17 @@ val render_clear : renderer -> unit
 val render_present : renderer -> unit
 val flush : renderer -> unit
 
-val create_texture : renderer -> int -> int -> int -> int -> texture
+(** [create_texture ~format ~access ~width ~height] creates a texture.
+    [format] is e.g. [Sdl3_consts.sdl_pixelformat_rgba8888].
+    [access] is e.g. [Sdl3_consts.sdl_textureaccess_static] or
+    [sdl_textureaccess_streaming]. *)
+val create_texture :
+  renderer ->
+  format:int ->
+  access:int ->
+  width:int ->
+  height:int ->
+  texture
 val create_texture_from_surface : renderer -> Sdl3_surface.surface -> texture
 val destroy_texture : texture -> unit
 
@@ -85,7 +99,8 @@ val update_texture :
   unit
 
 (** {2 Logical presentation} *)
-val set_render_logical_presentation : renderer -> int -> int -> int -> unit
+val set_render_logical_presentation :
+  renderer -> width:int -> height:int -> mode:int -> unit
 val get_render_logical_presentation : renderer -> int * int * int
 val get_render_logical_presentation_rect : renderer -> frect
 
