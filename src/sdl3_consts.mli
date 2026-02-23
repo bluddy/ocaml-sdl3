@@ -224,3 +224,20 @@ val sdl_flip_horizontal_and_vertical : int
 (** {1 Renderer names} *)
 val sdl_software_renderer : string
 val sdl_gpu_renderer : string
+
+(** {1 Renderer logical presentation} (SDL_RendererLogicalPresentation) *)
+val sdl_logical_presentation_disabled : int
+val sdl_logical_presentation_stretch : int
+val sdl_logical_presentation_letterbox : int
+val sdl_logical_presentation_overscan : int
+val sdl_logical_presentation_integer_scale : int
+
+(** {1 VSync} *)
+val sdl_renderer_vsync_disabled : int
+val sdl_renderer_vsync_adaptive : int
+
+(** {1 Texture address mode} (SDL_TextureAddressMode) *)
+val sdl_texture_address_invalid : int
+val sdl_texture_address_auto : int
+val sdl_texture_address_clamp : int
+val sdl_texture_address_wrap : int

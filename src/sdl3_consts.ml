@@ -241,3 +241,20 @@ let sdl_flip_horizontal_and_vertical = 0x3
 (** {1 Renderer names} (strings) *)
 let sdl_software_renderer = "software"
 let sdl_gpu_renderer = "gpu"
+
+(** {1 Renderer logical presentation} (SDL_RendererLogicalPresentation) *)
+let sdl_logical_presentation_disabled = 0
+let sdl_logical_presentation_stretch = 1
+let sdl_logical_presentation_letterbox = 2
+let sdl_logical_presentation_overscan = 3
+let sdl_logical_presentation_integer_scale = 4
+
+(** {1 VSync} *)
+let sdl_renderer_vsync_disabled = 0
+let sdl_renderer_vsync_adaptive = -1
+
+(** {1 Texture address mode} (SDL_TextureAddressMode) *)
+let sdl_texture_address_invalid = -1
+let sdl_texture_address_auto = 0
+let sdl_texture_address_clamp = 1
+let sdl_texture_address_wrap = 2
