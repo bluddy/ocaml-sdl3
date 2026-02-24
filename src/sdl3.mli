@@ -152,6 +152,11 @@ end
 (** {1 Events} *)
 module Event : module type of Sdl3_events
 
+(** {1 Gamepad}
+
+    Call [init] with [Init.gamepad] before using gamepad functions. *)
+module Gamepad : module type of Sdl3_gamepad
+
 (** {1 Audio} *)
 module Audio : module type of Sdl3_audio
 module Surface : module type of Sdl3_surface

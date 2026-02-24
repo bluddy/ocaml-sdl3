@@ -45,6 +45,49 @@ let sdl_window_maximized = 0x0000000000000080L
 let sdl_window_vulkan = 0x0000000010000000L
 let sdl_window_metal = 0x0000000020000000L
 
+(** {1 Gamepad} (SDL_gamepad.h) *)
+(* SDL_GamepadButton *)
+let sdl_gamepad_button_invalid = -1
+let sdl_gamepad_button_south = 0
+let sdl_gamepad_button_east = 1
+let sdl_gamepad_button_west = 2
+let sdl_gamepad_button_north = 3
+let sdl_gamepad_button_back = 4
+let sdl_gamepad_button_guide = 5
+let sdl_gamepad_button_start = 6
+let sdl_gamepad_button_left_stick = 7
+let sdl_gamepad_button_right_stick = 8
+let sdl_gamepad_button_left_shoulder = 9
+let sdl_gamepad_button_right_shoulder = 10
+let sdl_gamepad_button_dpad_up = 11
+let sdl_gamepad_button_dpad_down = 12
+let sdl_gamepad_button_dpad_left = 13
+let sdl_gamepad_button_dpad_right = 14
+let sdl_gamepad_button_misc1 = 15
+let sdl_gamepad_button_right_paddle1 = 16
+let sdl_gamepad_button_left_paddle1 = 17
+let sdl_gamepad_button_right_paddle2 = 18
+let sdl_gamepad_button_left_paddle2 = 19
+let sdl_gamepad_button_touchpad = 20
+let sdl_gamepad_button_misc2 = 21
+let sdl_gamepad_button_misc3 = 22
+let sdl_gamepad_button_misc4 = 23
+let sdl_gamepad_button_misc5 = 24
+let sdl_gamepad_button_misc6 = 25
+
+(* SDL_GamepadAxis *)
+let sdl_gamepad_axis_invalid = -1
+let sdl_gamepad_axis_left_x = 0
+let sdl_gamepad_axis_left_y = 1
+let sdl_gamepad_axis_right_x = 2
+let sdl_gamepad_axis_right_y = 3
+let sdl_gamepad_axis_left_trigger = 4
+let sdl_gamepad_axis_right_trigger = 5
+
+(* SDL_Joystick axis range *)
+let sdl_joystick_axis_min = -32768
+let sdl_joystick_axis_max = 32767
+
 (** {1 Event types} (SDL_EventType, from SDL_events.h) *)
 (* Application *)
 let sdl_event_first = 0

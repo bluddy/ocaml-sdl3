@@ -47,6 +47,44 @@ val sdl_window_maximized : int64
 val sdl_window_vulkan : int64
 val sdl_window_metal : int64
 
+(** {1 Gamepad} (SDL_gamepad.h) *)
+val sdl_gamepad_button_invalid : int
+val sdl_gamepad_button_south : int
+val sdl_gamepad_button_east : int
+val sdl_gamepad_button_west : int
+val sdl_gamepad_button_north : int
+val sdl_gamepad_button_back : int
+val sdl_gamepad_button_guide : int
+val sdl_gamepad_button_start : int
+val sdl_gamepad_button_left_stick : int
+val sdl_gamepad_button_right_stick : int
+val sdl_gamepad_button_left_shoulder : int
+val sdl_gamepad_button_right_shoulder : int
+val sdl_gamepad_button_dpad_up : int
+val sdl_gamepad_button_dpad_down : int
+val sdl_gamepad_button_dpad_left : int
+val sdl_gamepad_button_dpad_right : int
+val sdl_gamepad_button_misc1 : int
+val sdl_gamepad_button_right_paddle1 : int
+val sdl_gamepad_button_left_paddle1 : int
+val sdl_gamepad_button_right_paddle2 : int
+val sdl_gamepad_button_left_paddle2 : int
+val sdl_gamepad_button_touchpad : int
+val sdl_gamepad_button_misc2 : int
+val sdl_gamepad_button_misc3 : int
+val sdl_gamepad_button_misc4 : int
+val sdl_gamepad_button_misc5 : int
+val sdl_gamepad_button_misc6 : int
+val sdl_gamepad_axis_invalid : int
+val sdl_gamepad_axis_left_x : int
+val sdl_gamepad_axis_left_y : int
+val sdl_gamepad_axis_right_x : int
+val sdl_gamepad_axis_right_y : int
+val sdl_gamepad_axis_left_trigger : int
+val sdl_gamepad_axis_right_trigger : int
+val sdl_joystick_axis_min : int
+val sdl_joystick_axis_max : int
+
 (** {1 Event types} (SDL_EventType) *)
 val sdl_event_first : int
 val sdl_event_quit : int

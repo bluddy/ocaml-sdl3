@@ -9,4 +9,4 @@
    (:include ../sdl3_cflags.sexp)
    -Wno-unused-parameter))
  (c_library_flags (:include ../sdl3_libs.sexp))
- (modules sdl3_consts sdl3_error sdl3_video sdl3_events sdl3_audio sdl3_surface sdl3_render sdl3))
+ (modules sdl3_consts sdl3_error sdl3_video sdl3_gamepad sdl3_events sdl3_audio sdl3_surface sdl3_render sdl3))

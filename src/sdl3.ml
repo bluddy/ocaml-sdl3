@@ -199,6 +199,9 @@ let get_version () =
 (** {1 Events} *)
 module Event = Sdl3_events
 
+(** {1 Gamepad} *)
+module Gamepad = Sdl3_gamepad
+
 (** {1 Audio} *)
 module Audio = Sdl3_audio
 
