@@ -99,3 +99,27 @@ val has_axis : t -> gamepad_axis -> bool
 val get_player_index : t -> int
 val set_player_index : t -> int -> unit
 val get_from_player_index : int -> t option
+
+(** Rumble, LED, mappings. *)
+
+val rumble : t -> low:float -> high:float -> duration_ms:int -> unit
+(** [rumble g ~low ~high ~duration_ms] starts main motors rumble.
+    [low] and [high] are 0.0-1.0. Raises [Sdl_error] if not supported. *)
+
+val rumble_triggers : t -> left:float -> right:float -> duration_ms:int -> unit
+(** [rumble_triggers g ~left ~right ~duration_ms] rumbles trigger motors
+    (Xbox One style). Raises [Sdl_error] if not supported. *)
+
+val set_led : t -> r:int -> g:int -> b:int -> unit
+(** [set_led g ~r ~g ~b] sets RGB LED (0-255 each). Raises [Sdl_error] if not supported. *)
+
+val add_mapping : string -> bool
+(** [add_mapping s] adds or updates a gamepad mapping. Returns [true] if new, [false] if updated.
+    Raises [Sdl_error] on failure. *)
+
+val add_mappings_from_file : string -> int
+(** [add_mappings_from_file path] loads mappings from file. Returns number added.
+    Raises [Sdl_error] on failure. *)
+
+val get_mapping : t -> string option
+(** [get_mapping g] returns the current mapping string, or [None] if unavailable. *)

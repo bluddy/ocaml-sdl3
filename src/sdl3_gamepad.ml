@@ -275,3 +275,69 @@ let sdl_get_gamepad_from_player_index =
 let get_from_player_index index =
   let p = sdl_get_gamepad_from_player_index index in
   if is_null p then None else Some p
+
+(* Phase 6.4: Rumble, LED, Mappings *)
+
+let rumble_intensity f =
+  (* Clamp float 0.0-1.0 to Uint16 0-0xFFFF *)
+  let v = int_of_float (f *. 65535.0) in
+  min 65535 (max 0 v)
+  |> Unsigned.UInt16.of_int
+
+let sdl_rumble_gamepad =
+  foreign "SDL_RumbleGamepad"
+    (ptr void @-> uint16_t @-> uint16_t @-> uint32_t @-> returning bool)
+
+let rumble gamepad ~low ~high ~duration_ms =
+  let low_u = rumble_intensity low and high_u = rumble_intensity high in
+  let duration = Unsigned.UInt32.of_int duration_ms in
+  if not (sdl_rumble_gamepad gamepad low_u high_u duration) then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
+
+let sdl_rumble_gamepad_triggers =
+  foreign "SDL_RumbleGamepadTriggers"
+    (ptr void @-> uint16_t @-> uint16_t @-> uint32_t @-> returning bool)
+
+let rumble_triggers gamepad ~left ~right ~duration_ms =
+  let left_u = rumble_intensity left and right_u = rumble_intensity right in
+  let duration = Unsigned.UInt32.of_int duration_ms in
+  if not (sdl_rumble_gamepad_triggers gamepad left_u right_u duration) then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
+
+let sdl_set_gamepad_led =
+  foreign "SDL_SetGamepadLED"
+    (ptr void @-> uint8_t @-> uint8_t @-> uint8_t @-> returning bool)
+
+let set_led gamepad ~r ~g ~b =
+  let r' = Unsigned.UInt8.of_int (min 255 (max 0 r))
+  and g' = Unsigned.UInt8.of_int (min 255 (max 0 g))
+  and b' = Unsigned.UInt8.of_int (min 255 (max 0 b)) in
+  if not (sdl_set_gamepad_led gamepad r' g' b') then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
+
+let sdl_add_gamepad_mapping =
+  foreign "SDL_AddGamepadMapping" (string @-> returning int)
+
+let add_mapping mapping =
+  let r = sdl_add_gamepad_mapping mapping in
+  if r < 0 then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
+  r = 1
+
+let sdl_add_gamepad_mappings_from_file =
+  foreign "SDL_AddGamepadMappingsFromFile" (string @-> returning int)
+
+let add_mappings_from_file path =
+  let r = sdl_add_gamepad_mappings_from_file path in
+  if r < 0 then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
+  r
+
+let sdl_get_gamepad_mapping =
+  foreign "SDL_GetGamepadMapping" (ptr void @-> returning (ptr char))
+
+let get_mapping gamepad =
+  let p = sdl_get_gamepad_mapping gamepad in
+  if is_null p then None
+  else
+    let s = (coerce (ptr char) string p) in
+    sdl_free (to_voidp p);
+    Some s
