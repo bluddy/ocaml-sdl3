@@ -125,6 +125,51 @@ let gamepad_axis_of_int = function
   | 5 -> Right_trigger
   | _ -> Invalid_axis
 
+type gamepad_type =
+  | Unknown
+  | Standard
+  | Xbox360
+  | XboxOne
+  | PS3
+  | PS4
+  | PS5
+  | Nintendo_switch_pro
+  | Nintendo_switch_joycon_left
+  | Nintendo_switch_joycon_right
+  | Nintendo_switch_joycon_pair
+  | Gamecube
+  | Unknown_type of int
+
+let gamepad_type_to_int [@warning "-32"] = function
+  | Unknown -> sdl_gamepad_type_unknown
+  | Standard -> sdl_gamepad_type_standard
+  | Xbox360 -> sdl_gamepad_type_xbox360
+  | XboxOne -> sdl_gamepad_type_xboxone
+  | PS3 -> sdl_gamepad_type_ps3
+  | PS4 -> sdl_gamepad_type_ps4
+  | PS5 -> sdl_gamepad_type_ps5
+  | Nintendo_switch_pro -> sdl_gamepad_type_nintendo_switch_pro
+  | Nintendo_switch_joycon_left -> sdl_gamepad_type_nintendo_switch_joycon_left
+  | Nintendo_switch_joycon_right -> sdl_gamepad_type_nintendo_switch_joycon_right
+  | Nintendo_switch_joycon_pair -> sdl_gamepad_type_nintendo_switch_joycon_pair
+  | Gamecube -> sdl_gamepad_type_gamecube
+  | Unknown_type i -> i
+
+let gamepad_type_of_int = function
+  | 0 -> Unknown
+  | 1 -> Standard
+  | 2 -> Xbox360
+  | 3 -> XboxOne
+  | 4 -> PS3
+  | 5 -> PS4
+  | 6 -> PS5
+  | 7 -> Nintendo_switch_pro
+  | 8 -> Nintendo_switch_joycon_left
+  | 9 -> Nintendo_switch_joycon_right
+  | 10 -> Nintendo_switch_joycon_pair
+  | 11 -> Gamecube
+  | i -> Unknown_type i
+
 let sdl_free = foreign "SDL_free" (ptr void @-> returning void)
 
 let sdl_get_gamepads = foreign "SDL_GetGamepads" (ptr int @-> returning (ptr uint32_t))
@@ -183,3 +228,50 @@ let sdl_get_gamepad_id = foreign "SDL_GetGamepadID" (ptr void @-> returning uint
 
 let get_instance_id gamepad =
   instance_id_of_uint32 (sdl_get_gamepad_id gamepad)
+
+let sdl_get_gamepad_name = foreign "SDL_GetGamepadName" (ptr void @-> returning string_opt)
+
+let get_name gamepad =
+  sdl_get_gamepad_name gamepad
+
+let sdl_get_gamepad_path = foreign "SDL_GetGamepadPath" (ptr void @-> returning string_opt)
+
+let get_path gamepad =
+  sdl_get_gamepad_path gamepad
+
+let sdl_get_gamepad_type =
+  foreign "SDL_GetGamepadType" (ptr void @-> returning int)
+
+let get_type gamepad =
+  gamepad_type_of_int (sdl_get_gamepad_type gamepad)
+
+let sdl_gamepad_has_button =
+  foreign "SDL_GamepadHasButton" (ptr void @-> int @-> returning bool)
+
+let has_button gamepad button =
+  sdl_gamepad_has_button gamepad (gamepad_button_to_int button)
+
+let sdl_gamepad_has_axis =
+  foreign "SDL_GamepadHasAxis" (ptr void @-> int @-> returning bool)
+
+let has_axis gamepad axis =
+  sdl_gamepad_has_axis gamepad (gamepad_axis_to_int axis)
+
+let sdl_get_gamepad_player_index =
+  foreign "SDL_GetGamepadPlayerIndex" (ptr void @-> returning int)
+
+let get_player_index gamepad =
+  sdl_get_gamepad_player_index gamepad
+
+let sdl_set_gamepad_player_index =
+  foreign "SDL_SetGamepadPlayerIndex" (ptr void @-> int @-> returning void)
+
+let set_player_index gamepad index =
+  sdl_set_gamepad_player_index gamepad index
+
+let sdl_get_gamepad_from_player_index =
+  foreign "SDL_GetGamepadFromPlayerIndex" (int @-> returning (ptr void))
+
+let get_from_player_index index =
+  let p = sdl_get_gamepad_from_player_index index in
+  if is_null p then None else Some p

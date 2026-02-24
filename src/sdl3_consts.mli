@@ -84,6 +84,18 @@ val sdl_gamepad_axis_left_trigger : int
 val sdl_gamepad_axis_right_trigger : int
 val sdl_joystick_axis_min : int
 val sdl_joystick_axis_max : int
+val sdl_gamepad_type_unknown : int
+val sdl_gamepad_type_standard : int
+val sdl_gamepad_type_xbox360 : int
+val sdl_gamepad_type_xboxone : int
+val sdl_gamepad_type_ps3 : int
+val sdl_gamepad_type_ps4 : int
+val sdl_gamepad_type_ps5 : int
+val sdl_gamepad_type_nintendo_switch_pro : int
+val sdl_gamepad_type_nintendo_switch_joycon_left : int
+val sdl_gamepad_type_nintendo_switch_joycon_right : int
+val sdl_gamepad_type_nintendo_switch_joycon_pair : int
+val sdl_gamepad_type_gamecube : int
 
 (** {1 Event types} (SDL_EventType) *)
 val sdl_event_first : int

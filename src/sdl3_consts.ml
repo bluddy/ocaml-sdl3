@@ -88,6 +88,20 @@ let sdl_gamepad_axis_right_trigger = 5
 let sdl_joystick_axis_min = -32768
 let sdl_joystick_axis_max = 32767
 
+(* SDL_GamepadType *)
+let sdl_gamepad_type_unknown = 0
+let sdl_gamepad_type_standard = 1
+let sdl_gamepad_type_xbox360 = 2
+let sdl_gamepad_type_xboxone = 3
+let sdl_gamepad_type_ps3 = 4
+let sdl_gamepad_type_ps4 = 5
+let sdl_gamepad_type_ps5 = 6
+let sdl_gamepad_type_nintendo_switch_pro = 7
+let sdl_gamepad_type_nintendo_switch_joycon_left = 8
+let sdl_gamepad_type_nintendo_switch_joycon_right = 9
+let sdl_gamepad_type_nintendo_switch_joycon_pair = 10
+let sdl_gamepad_type_gamecube = 11
+
 (** {1 Event types} (SDL_EventType, from SDL_events.h) *)
 (* Application *)
 let sdl_event_first = 0

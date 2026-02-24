@@ -48,6 +48,24 @@ type gamepad_axis =
 
 val gamepad_axis_of_int : int -> gamepad_axis
 
+type gamepad_type =
+  | Unknown
+  | Standard
+  | Xbox360
+  | XboxOne
+  | PS3
+  | PS4
+  | PS5
+  | Nintendo_switch_pro
+  | Nintendo_switch_joycon_left
+  | Nintendo_switch_joycon_right
+  | Nintendo_switch_joycon_pair
+  | Gamecube
+  | Unknown_type of int
+
+val gamepad_type_of_int : int -> gamepad_type
+val gamepad_type_to_int : gamepad_type -> int
+
 val get_gamepads : unit -> instance_id list
 (** [get_gamepads ()] returns connected gamepad instance IDs. *)
 
@@ -72,3 +90,12 @@ val get_from_instance_id : instance_id -> t option
 (** [get_from_instance_id id] returns the gamepad for [id] if open, None otherwise. *)
 
 val get_instance_id : t -> instance_id
+
+val get_name : t -> string option
+val get_path : t -> string option
+val get_type : t -> gamepad_type
+val has_button : t -> gamepad_button -> bool
+val has_axis : t -> gamepad_axis -> bool
+val get_player_index : t -> int
+val set_player_index : t -> int -> unit
+val get_from_player_index : int -> t option
