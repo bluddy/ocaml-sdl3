@@ -3,6 +3,7 @@
 open Ctypes
 open Foreign
 open Sdl3_consts
+open Sdl3_gamepad
 
 (* ---- Ctypes event structures (SDL3 layout) ---- *)
 
@@ -100,6 +101,46 @@ module Drop_event = struct
   let () = seal t
 end
 
+module Gamepad_button_event = struct
+  type t
+  let t : t structure typ = structure "SDL_GamepadButtonEvent"
+  let _type = field t "type" uint32_t
+  let _reserved = field t "reserved" uint32_t
+  let timestamp = field t "timestamp" uint64_t
+  let which = field t "which" uint32_t
+  let button = field t "button" uint8_t
+  let down = field t "down" bool
+  let _padding1 = field t "padding1" uint8_t
+  let _padding2 = field t "padding2" uint8_t
+  let () = seal t
+end
+
+module Gamepad_axis_event = struct
+  type t
+  let t : t structure typ = structure "SDL_GamepadAxisEvent"
+  let _type = field t "type" uint32_t
+  let _reserved = field t "reserved" uint32_t
+  let timestamp = field t "timestamp" uint64_t
+  let which = field t "which" uint32_t
+  let axis = field t "axis" uint8_t
+  let _padding1 = field t "padding1" uint8_t
+  let _padding2 = field t "padding2" uint8_t
+  let _padding3 = field t "padding3" uint8_t
+  let value = field t "value" short
+  let _padding4 = field t "padding4" uint16_t
+  let () = seal t
+end
+
+module Gamepad_device_event = struct
+  type t
+  let t : t structure typ = structure "SDL_GamepadDeviceEvent"
+  let _type = field t "type" uint32_t
+  let _reserved = field t "reserved" uint32_t
+  let timestamp = field t "timestamp" uint64_t
+  let which = field t "which" uint32_t
+  let () = seal t
+end
+
 (* SDL_CommonEvent - shared header for all events *)
 module Common_event = struct
   type t
@@ -124,6 +165,9 @@ let button = field event_t "button" Mouse_button_event.t
 let wheel = field event_t "wheel" Mouse_wheel_event.t
 let window = field event_t "window" Window_event.t
 let drop = field event_t "drop" Drop_event.t
+let gaxis = field event_t "gaxis" Gamepad_axis_event.t
+let gbutton = field event_t "gbutton" Gamepad_button_event.t
+let gdevice = field event_t "gdevice" Gamepad_device_event.t
 let _padding =
   field event_t "padding"
     (abstract ~name:"SDL_Event_padding" ~size:(sdl_event_size ()) ~alignment:1)
@@ -568,6 +612,22 @@ module Field = struct
   let drop_x = F (drop, Drop_event.x)
   let drop_y = F (drop, Drop_event.y)
   let drop_data = F (drop, Drop_event.data)
+
+  (* Gamepad button *)
+  let gamepad_button_timestamp = F (gbutton, Gamepad_button_event.timestamp)
+  let gamepad_button_which = F (gbutton, Gamepad_button_event.which)
+  let gamepad_button_button = F (gbutton, Gamepad_button_event.button)
+  let gamepad_button_down = F (gbutton, Gamepad_button_event.down)
+
+  (* Gamepad axis *)
+  let gamepad_axis_timestamp = F (gaxis, Gamepad_axis_event.timestamp)
+  let gamepad_axis_which = F (gaxis, Gamepad_axis_event.which)
+  let gamepad_axis_axis = F (gaxis, Gamepad_axis_event.axis)
+  let gamepad_axis_value = F (gaxis, Gamepad_axis_event.value)
+
+  (* Gamepad device *)
+  let gamepad_device_timestamp = F (gdevice, Gamepad_device_event.timestamp)
+  let gamepad_device_which = F (gdevice, Gamepad_device_event.which)
 end
 
 (** Accessors by event kind. Only the requested field is read; no allocation. *)
@@ -632,5 +692,32 @@ module Drop = struct
   let data e =
     let p = Field.get e Field.drop_data in
     if is_null p then None else Some (coerce (ptr char) string p)
+end
+
+module Gamepad_button = struct
+  let timestamp e =
+    Unsigned.UInt64.to_int (Field.get e Field.gamepad_button_timestamp)
+  let which e : instance_id =
+    Unsigned.UInt32.to_int32 (Field.get e Field.gamepad_button_which)
+  let button e =
+    gamepad_button_of_int (Unsigned.UInt8.to_int (Field.get e Field.gamepad_button_button))
+  let down e = Field.get e Field.gamepad_button_down
+end
+
+module Gamepad_axis = struct
+  let timestamp e =
+    Unsigned.UInt64.to_int (Field.get e Field.gamepad_axis_timestamp)
+  let which e : instance_id =
+    Unsigned.UInt32.to_int32 (Field.get e Field.gamepad_axis_which)
+  let axis e =
+    gamepad_axis_of_int (Unsigned.UInt8.to_int (Field.get e Field.gamepad_axis_axis))
+  let value e = Field.get e Field.gamepad_axis_value
+end
+
+module Gamepad_device = struct
+  let timestamp e =
+    Unsigned.UInt64.to_int (Field.get e Field.gamepad_device_timestamp)
+  let which e : instance_id =
+    Unsigned.UInt32.to_int32 (Field.get e Field.gamepad_device_which)
 end
 

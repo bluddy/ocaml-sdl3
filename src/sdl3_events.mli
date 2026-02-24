@@ -208,3 +208,23 @@ module Drop : sig
   val data : t -> string option
 end
 
+module Gamepad_button : sig
+  val timestamp : t -> int
+  val which : t -> Sdl3_gamepad.instance_id
+  val button : t -> Sdl3_gamepad.gamepad_button
+  val down : t -> bool
+end
+
+module Gamepad_axis : sig
+  val timestamp : t -> int
+  val which : t -> Sdl3_gamepad.instance_id
+  val axis : t -> Sdl3_gamepad.gamepad_axis
+  val value : t -> int
+end
+(** [value] is in [-32768, 32767]. *)
+
+module Gamepad_device : sig
+  val timestamp : t -> int
+  val which : t -> Sdl3_gamepad.instance_id
+end
+
