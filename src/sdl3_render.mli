@@ -1,6 +1,6 @@
 (** SDL3 2D rendering. *)
-type renderer
-type texture
+type renderer = Sdl3_internal.renderer
+type texture = Sdl3_internal.texture
 type frect
 type fpoint
 
@@ -12,9 +12,13 @@ type blend_mode =
   | Blend_add_premultiplied
   | Blend_mod
   | Blend_mul
-  | Blend_invalid
+  | Blend_unknown of int
 
-type scale_mode = Scale_invalid | Scale_nearest | Scale_linear | Scale_pixelart
+type scale_mode =
+  | Scale_nearest
+  | Scale_linear
+  | Scale_pixelart
+  | Scale_unknown of int
 
 type flip = Flip_none | Flip_horizontal | Flip_vertical | Flip_both
 
@@ -24,8 +28,9 @@ type logical_presentation =
   | Logical_letterbox
   | Logical_overscan
   | Logical_integer_scale
+  | Logical_unknown of int
 
-type vsync_mode = Vsync_off | Vsync_on | Vsync_adaptive
+type vsync_mode = Vsync_off | Vsync_on | Vsync_adaptive | Vsync_unknown of int
 
 type texture_access = Texture_static | Texture_streaming | Texture_target
 

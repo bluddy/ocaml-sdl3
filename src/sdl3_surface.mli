@@ -41,10 +41,8 @@ module Surface : sig
   val format : surface -> int
 end
 
-(** Internal *)
-
-val adopt_: surface -> unit
+(** {1 Internal} *)
 
 val to_ptr_: surface -> unit Ctypes.ptr
 val of_ptr_: unit Ctypes.ptr -> surface
-
+val adopt_ptr_: unit Ctypes.ptr -> surface

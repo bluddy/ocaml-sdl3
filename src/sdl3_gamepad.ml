@@ -1,9 +1,10 @@
 open Ctypes
 open Foreign
 open Sdl3_consts
+open Sdl3_internal
 
 (** Opaque gamepad handle. *)
-type t = unit ptr
+type t = Sdl3_internal.gamepad
 
 (** Joystick instance ID (SDL_JoystickID = Uint32). Use for gamepad_added/removed events. *)
 type instance_id = int32
@@ -170,8 +171,6 @@ let gamepad_type_of_int = function
   | 11 -> Gamecube
   | i -> Unknown_type i
 
-let sdl_free = foreign "SDL_free" (ptr void @-> returning void)
-
 let sdl_get_gamepads = foreign "SDL_GetGamepads" (ptr int @-> returning (ptr uint32_t))
 
 let get_gamepads () =
@@ -191,86 +190,87 @@ let sdl_is_gamepad = foreign "SDL_IsGamepad" (uint32_t @-> returning bool)
 let is_gamepad id =
   sdl_is_gamepad (instance_id_to_uint32 id)
 
-let sdl_open_gamepad = foreign "SDL_OpenGamepad" (uint32_t @-> returning (ptr void))
+let sdl_open_gamepad = foreign "SDL_OpenGamepad" (uint32_t @-> returning (ptr gamepad_tag))
+
+let sdl_close_gamepad = foreign "SDL_CloseGamepad" (ptr gamepad_tag @-> returning void)
+
+let close = sdl_close_gamepad
 
 let open_gamepad id =
   let p = sdl_open_gamepad (instance_id_to_uint32 id) in
   if is_null p then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
+  Gc.finalise close p;
   p
 
-let sdl_close_gamepad = foreign "SDL_CloseGamepad" (ptr void @-> returning void)
-
-let close = sdl_close_gamepad
-
 let sdl_get_gamepad_button =
-  foreign "SDL_GetGamepadButton" (ptr void @-> int @-> returning bool)
+  foreign "SDL_GetGamepadButton" (ptr gamepad_tag @-> int @-> returning bool)
 
 let get_button gamepad button =
   sdl_get_gamepad_button gamepad (gamepad_button_to_int button)
 
 let sdl_get_gamepad_axis =
-  foreign "SDL_GetGamepadAxis" (ptr void @-> int @-> returning int)
+  foreign "SDL_GetGamepadAxis" (ptr gamepad_tag @-> int @-> returning int)
 
 let get_axis gamepad axis =
   sdl_get_gamepad_axis gamepad (gamepad_axis_to_int axis)
 
-let sdl_gamepad_connected = foreign "SDL_GamepadConnected" (ptr void @-> returning bool)
+let sdl_gamepad_connected = foreign "SDL_GamepadConnected" (ptr gamepad_tag @-> returning bool)
 
 let connected = sdl_gamepad_connected
 
-let sdl_get_gamepad_from_id = foreign "SDL_GetGamepadFromID" (uint32_t @-> returning (ptr void))
+let sdl_get_gamepad_from_id = foreign "SDL_GetGamepadFromID" (uint32_t @-> returning (ptr gamepad_tag))
 
 let get_from_instance_id id =
   let p = sdl_get_gamepad_from_id (instance_id_to_uint32 id) in
   if is_null p then None else Some p
 
-let sdl_get_gamepad_id = foreign "SDL_GetGamepadID" (ptr void @-> returning uint32_t)
+let sdl_get_gamepad_id = foreign "SDL_GetGamepadID" (ptr gamepad_tag @-> returning uint32_t)
 
 let get_instance_id gamepad =
   instance_id_of_uint32 (sdl_get_gamepad_id gamepad)
 
-let sdl_get_gamepad_name = foreign "SDL_GetGamepadName" (ptr void @-> returning string_opt)
+let sdl_get_gamepad_name = foreign "SDL_GetGamepadName" (ptr gamepad_tag @-> returning string_opt)
 
 let get_name gamepad =
   sdl_get_gamepad_name gamepad
 
-let sdl_get_gamepad_path = foreign "SDL_GetGamepadPath" (ptr void @-> returning string_opt)
+let sdl_get_gamepad_path = foreign "SDL_GetGamepadPath" (ptr gamepad_tag @-> returning string_opt)
 
 let get_path gamepad =
   sdl_get_gamepad_path gamepad
 
 let sdl_get_gamepad_type =
-  foreign "SDL_GetGamepadType" (ptr void @-> returning int)
+  foreign "SDL_GetGamepadType" (ptr gamepad_tag @-> returning int)
 
 let get_type gamepad =
   gamepad_type_of_int (sdl_get_gamepad_type gamepad)
 
 let sdl_gamepad_has_button =
-  foreign "SDL_GamepadHasButton" (ptr void @-> int @-> returning bool)
+  foreign "SDL_GamepadHasButton" (ptr gamepad_tag @-> int @-> returning bool)
 
 let has_button gamepad button =
   sdl_gamepad_has_button gamepad (gamepad_button_to_int button)
 
 let sdl_gamepad_has_axis =
-  foreign "SDL_GamepadHasAxis" (ptr void @-> int @-> returning bool)
+  foreign "SDL_GamepadHasAxis" (ptr gamepad_tag @-> int @-> returning bool)
 
 let has_axis gamepad axis =
   sdl_gamepad_has_axis gamepad (gamepad_axis_to_int axis)
 
 let sdl_get_gamepad_player_index =
-  foreign "SDL_GetGamepadPlayerIndex" (ptr void @-> returning int)
+  foreign "SDL_GetGamepadPlayerIndex" (ptr gamepad_tag @-> returning int)
 
 let get_player_index gamepad =
   sdl_get_gamepad_player_index gamepad
 
 let sdl_set_gamepad_player_index =
-  foreign "SDL_SetGamepadPlayerIndex" (ptr void @-> int @-> returning void)
+  foreign "SDL_SetGamepadPlayerIndex" (ptr gamepad_tag @-> int @-> returning void)
 
 let set_player_index gamepad index =
   sdl_set_gamepad_player_index gamepad index
 
 let sdl_get_gamepad_from_player_index =
-  foreign "SDL_GetGamepadFromPlayerIndex" (int @-> returning (ptr void))
+  foreign "SDL_GetGamepadFromPlayerIndex" (int @-> returning (ptr gamepad_tag))
 
 let get_from_player_index index =
   let p = sdl_get_gamepad_from_player_index index in
@@ -286,7 +286,7 @@ let rumble_intensity f =
 
 let sdl_rumble_gamepad =
   foreign "SDL_RumbleGamepad"
-    (ptr void @-> uint16_t @-> uint16_t @-> uint32_t @-> returning bool)
+    (ptr gamepad_tag @-> uint16_t @-> uint16_t @-> uint32_t @-> returning bool)
 
 let rumble gamepad ~low ~high ~duration_ms =
   let low_u = rumble_intensity low and high_u = rumble_intensity high in
@@ -296,7 +296,7 @@ let rumble gamepad ~low ~high ~duration_ms =
 
 let sdl_rumble_gamepad_triggers =
   foreign "SDL_RumbleGamepadTriggers"
-    (ptr void @-> uint16_t @-> uint16_t @-> uint32_t @-> returning bool)
+    (ptr gamepad_tag @-> uint16_t @-> uint16_t @-> uint32_t @-> returning bool)
 
 let rumble_triggers gamepad ~left ~right ~duration_ms =
   let left_u = rumble_intensity left and right_u = rumble_intensity right in
@@ -306,7 +306,7 @@ let rumble_triggers gamepad ~left ~right ~duration_ms =
 
 let sdl_set_gamepad_led =
   foreign "SDL_SetGamepadLED"
-    (ptr void @-> uint8_t @-> uint8_t @-> uint8_t @-> returning bool)
+    (ptr gamepad_tag @-> uint8_t @-> uint8_t @-> uint8_t @-> returning bool)
 
 let set_led gamepad ~r ~g ~b =
   let r' = Unsigned.UInt8.of_int (min 255 (max 0 r))
@@ -332,12 +332,7 @@ let add_mappings_from_file path =
   r
 
 let sdl_get_gamepad_mapping =
-  foreign "SDL_GetGamepadMapping" (ptr void @-> returning (ptr char))
+  foreign "SDL_GetGamepadMapping" (ptr gamepad_tag @-> returning (ptr char))
 
 let get_mapping gamepad =
-  let p = sdl_get_gamepad_mapping gamepad in
-  if is_null p then None
-  else
-    let s = (coerce (ptr char) string p) in
-    sdl_free (to_voidp p);
-    Some s
+  consume_c_string (Some (sdl_get_gamepad_mapping gamepad))

@@ -34,7 +34,7 @@ val get_display_bounds : display_id -> rect option
 (** [get_display_bounds id] returns the display bounds, or None on error. *)
 
 (** {1 Window} *)
-type window = unit Ctypes.ptr
+type window = Sdl3_internal.window
 
 val window_of_ptr : unit Ctypes.ptr -> window
 (** Internal: construct window from raw pointer. *)

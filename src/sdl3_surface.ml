@@ -1,18 +1,9 @@
 open Ctypes
 open Foreign
 open Sdl3_consts
-
-(** Opaque surface pointer. *)
-type surface = unit ptr
-
-module Pixel_format = struct
-  let rgba8888 = sdl_pixelformat_rgba8888
-  let rgb24 = sdl_pixelformat_rgb24
-  let rgb565 = sdl_pixelformat_rgb565
-end
+open Sdl3_internal
 
 (** SDL_Surface structure for accessing fields. *)
-type surface_tag
 let sdl_surface : surface_tag structure typ = structure "SDL_Surface"
 let _surface_flags = field sdl_surface "flags" uint32_t
 let _surface_format = field sdl_surface "format" uint32_t
@@ -22,25 +13,43 @@ let _surface_pitch = field sdl_surface "pitch" int
 let _surface_pixels = field sdl_surface "pixels" (ptr void)
 let () = seal sdl_surface
 
+type ba = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
+type surface = {
+  ptr : surface_ptr;
+  source : [ `None | `Bigarray of ba ];
+}
+
+module Pixel_format = struct
+  let rgba8888 = sdl_pixelformat_rgba8888
+  let rgb24 = sdl_pixelformat_rgb24
+  let rgb565 = sdl_pixelformat_rgb565
+end
+
 let sdl_create_surface =
-  foreign "SDL_CreateSurface" (int @-> int @-> uint32_t @-> returning (ptr void))
+  foreign "SDL_CreateSurface" (int @-> int @-> uint32_t @-> returning surface_ptr)
 
-let sdl_destroy_surface = foreign "SDL_DestroySurface" (ptr void @-> returning void)
+let sdl_destroy_surface = foreign "SDL_DestroySurface" (surface_ptr @-> returning void)
 
-let adopt_ s = Gc.finalise sdl_destroy_surface s
+let surface_of_ptr (p : surface_ptr) =
+  coerce surface_ptr (ptr sdl_surface) p
 
-let of_ptr_ p = (p : surface)
-let to_ptr_ s = (s : unit ptr)
+let destroy_surface s =
+  sdl_destroy_surface s.ptr
+
+let adopt_ ptr source =
+  let s = { ptr; source } in
+  Gc.finalise destroy_surface s;
+  s
 
 let create_surface ~width ~height ~format =
   let p = sdl_create_surface width height (Unsigned.UInt32.of_int format) in
   if is_null p then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  adopt_ p;
-  p
+  adopt_ p `None
 
 let sdl_create_surface_from =
   foreign "SDL_CreateSurfaceFrom"
-    (int @-> int @-> uint32_t @-> ptr void @-> int @-> returning (ptr void))
+    (int @-> int @-> uint32_t @-> ptr void @-> int @-> returning surface_ptr)
 
 let create_surface_from ~width ~height ~format ~pixels ~pitch =
   let pix_ptr =
@@ -50,51 +59,46 @@ let create_surface_from ~width ~height ~format ~pixels ~pitch =
   in
   let p = sdl_create_surface_from width height (Unsigned.UInt32.of_int format) pix_ptr pitch in
   if is_null p then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  adopt_ p;
-  p
+  let source = match pixels with None -> `None | Some ba -> `Bigarray ba in
+  adopt_ p source
 
-let sdl_load_bmp = foreign "SDL_LoadBMP" (string @-> returning (ptr void))
+let sdl_load_bmp = foreign "SDL_LoadBMP" (string @-> returning surface_ptr)
 
 let load_bmp path =
   let p = sdl_load_bmp path in
   if is_null p then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  adopt_ p;
-  p
+  adopt_ p `None
 
-let sdl_lock_surface = foreign "SDL_LockSurface" (ptr void @-> returning bool)
+let sdl_lock_surface = foreign "SDL_LockSurface" (surface_ptr @-> returning bool)
 
 let lock_surface s =
-  if not (sdl_lock_surface s) then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
+  if not (sdl_lock_surface s.ptr) then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
-let unlock_surface = foreign "SDL_UnlockSurface" (ptr void @-> returning void)
-
-(** View surface pointer as struct for field access. *)
-let surface_of_ptr (p : surface) =
-  coerce (ptr void) (ptr sdl_surface) p
-
-let sdl3_ptr_addr = foreign "sdl3_ptr_addr" (ptr void @-> returning int64_t)
-
-external sdl3_bigarray_of_ptr : nativeint -> int -> (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-  = "sdl3_bigarray_of_ptr"
+let unlock_surface = foreign "SDL_UnlockSurface" (surface_ptr @-> returning void)
 
 let with_locked_surface surface f =
   lock_surface surface;
-  let view = !@ (surface_of_ptr surface) in
+  let view = !@ (surface_of_ptr surface.ptr) in
   let pitch = getf view _surface_pitch in
   let h = getf view _surface_h in
   let pix_ptr = getf view _surface_pixels in
   let size = pitch * h in
-  let addr = Int64.to_nativeint (Signed.Int64.to_int64 (sdl3_ptr_addr pix_ptr)) in
+  let addr = Int64.to_nativeint (Signed.Int64.to_int64 (sdl3_ptr_addr (to_voidp pix_ptr))) in
   let pixels = sdl3_bigarray_of_ptr addr size in
   try
-    f (pixels, pitch);
-    unlock_surface surface
+    let res = f (pixels, pitch) in
+    unlock_surface surface.ptr;
+    res
   with e ->
-    unlock_surface surface;
+    unlock_surface surface.ptr;
     raise e
 
+let of_ptr_ p = { ptr = coerce (ptr void) surface_ptr p; source = `None }
+let to_ptr_ s = coerce surface_ptr (ptr void) s.ptr
+let adopt_ptr_ p = adopt_ (coerce (ptr void) surface_ptr p) `None
+
 module Surface = struct
-  let view s = !@ (surface_of_ptr s)
+  let view s = !@ (surface_of_ptr s.ptr)
   let w s = getf (view s) _surface_w
   let h s = getf (view s) _surface_h
   let pitch s = getf (view s) _surface_pitch

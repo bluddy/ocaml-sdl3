@@ -1,6 +1,6 @@
 (** SDL3 Gamepad API. Call [Sdl3.init] with [Init.gamepad] before use. *)
 
-type t
+type t = Sdl3_internal.gamepad
 (** Opaque gamepad handle. *)
 
 type instance_id = int32

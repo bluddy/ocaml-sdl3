@@ -1,15 +1,17 @@
-(** SDL3 audio: low-level stream API with Bigarray buffers. *)
-
 open Ctypes
 open Foreign
 open Sdl3_consts
+open Sdl3_internal
 
-type stream = unit ptr
-type buffer =
-  (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+type ba = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+type buffer = ba
 
-let stream_of_ptr (p : unit ptr) : stream = p
-let ptr_of_stream (s : stream) : unit ptr = s
+type stream = {
+  ptr : Sdl3_internal.stream;
+  source : [ `None | `Bigarray of ba ];
+}
+
+let stream_of_ptr (p : Sdl3_internal.stream) : stream = { ptr = p; source = `None }
 
 (* SDL_AudioSpec - internal, not exposed *)
 let audio_spec = structure "SDL_AudioSpec"
@@ -25,62 +27,61 @@ let make_spec ~format ~channels ~freq =
   setf spec audio_spec_freq freq;
   spec
 
-(* Stream callback: userdata, stream, additional_amount, total_amount -> void.
-   C invokes from SDL audio thread: need runtime_lock and thread_registration *)
+(* Stream callback: userdata, stream, additional_amount, total_amount -> void. *)
 let audio_stream_callback =
   Foreign.funptr_opt
     ~runtime_lock:true
     ~thread_registration:true
-    (ptr void @-> ptr void @-> int @-> int @-> returning void)
+    (ptr void @-> ptr stream_tag @-> int @-> int @-> returning void)
 
 let sdl_open_audio_device_stream =
   foreign "SDL_OpenAudioDeviceStream"
     (uint32_t @-> ptr audio_spec @-> audio_stream_callback @-> ptr void
-    @-> returning (ptr void))
+    @-> returning (ptr stream_tag))
 
 let sdl_put_audio_stream_data =
   foreign "SDL_PutAudioStreamData"
-    (ptr void @-> ptr void @-> int @-> returning bool)
+    (ptr stream_tag @-> ptr void @-> int @-> returning bool)
 
 let sdl_put_audio_stream_data_no_copy =
   foreign "SDL_PutAudioStreamDataNoCopy"
-    (ptr void @-> ptr void @-> int @-> ptr void @-> ptr void @-> returning bool)
+    (ptr stream_tag @-> ptr void @-> int @-> ptr void @-> ptr void @-> returning bool)
 
 let sdl_get_audio_stream_data =
   foreign "SDL_GetAudioStreamData"
-    (ptr void @-> ptr void @-> int @-> returning int)
+    (ptr stream_tag @-> ptr void @-> int @-> returning int)
 
 let sdl_get_audio_stream_available =
-  foreign "SDL_GetAudioStreamAvailable" (ptr void @-> returning int)
+  foreign "SDL_GetAudioStreamAvailable" (ptr stream_tag @-> returning int)
 
 let sdl_get_audio_stream_queued =
-  foreign "SDL_GetAudioStreamQueued" (ptr void @-> returning int)
+  foreign "SDL_GetAudioStreamQueued" (ptr stream_tag @-> returning int)
 
 let sdl_flush_audio_stream =
-  foreign "SDL_FlushAudioStream" (ptr void @-> returning bool)
+  foreign "SDL_FlushAudioStream" (ptr stream_tag @-> returning bool)
 
 let sdl_clear_audio_stream =
-  foreign "SDL_ClearAudioStream" (ptr void @-> returning bool)
+  foreign "SDL_ClearAudioStream" (ptr stream_tag @-> returning bool)
 
 let sdl_destroy_audio_stream =
-  foreign "SDL_DestroyAudioStream" (ptr void @-> returning void)
+  foreign "SDL_DestroyAudioStream" (ptr stream_tag @-> returning void)
 
 let sdl_pause_audio_stream_device =
-  foreign "SDL_PauseAudioStreamDevice" (ptr void @-> returning bool)
+  foreign "SDL_PauseAudioStreamDevice" (ptr stream_tag @-> returning bool)
 
 let sdl_resume_audio_stream_device =
-  foreign "SDL_ResumeAudioStreamDevice" (ptr void @-> returning bool)
+  foreign "SDL_ResumeAudioStreamDevice" (ptr stream_tag @-> returning bool)
 
 let sdl_audio_stream_device_paused =
-  foreign "SDL_AudioStreamDevicePaused" (ptr void @-> returning bool)
+  foreign "SDL_AudioStreamDevicePaused" (ptr stream_tag @-> returning bool)
 
 let sdl_set_audio_stream_get_callback =
   foreign "SDL_SetAudioStreamGetCallback"
-    (ptr void @-> audio_stream_callback @-> ptr void @-> returning bool)
+    (ptr stream_tag @-> audio_stream_callback @-> ptr void @-> returning bool)
 
 let sdl_set_audio_stream_put_callback =
   foreign "SDL_SetAudioStreamPutCallback"
-    (ptr void @-> audio_stream_callback @-> ptr void @-> returning bool)
+    (ptr stream_tag @-> audio_stream_callback @-> ptr void @-> returning bool)
 
 let raise_on_false f =
   if not (f ()) then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
@@ -91,7 +92,7 @@ let wrap_stream_callback cb =
   | Some f ->
       Some
         (fun _userdata stream additional total ->
-          f (stream_of_ptr (from_voidp void stream))
+          f (stream_of_ptr stream)
             ~additional_amount:additional ~total_amount:total;
           ())
 
@@ -100,6 +101,14 @@ let buf_ptr ?(pos = 0) buffer =
   to_voidp (ptr +@ pos)
 
 (* --- Public API --- *)
+
+let destroy_audio_stream s =
+  sdl_destroy_audio_stream s.ptr
+
+let adopt_ ptr source =
+  let s = { ptr; source } in
+  Gc.finalise destroy_audio_stream s;
+  s
 
 let open_audio_device_stream ~device_id ~format ~channels ~freq ?callback () =
   let spec = make_spec ~format ~channels ~freq in
@@ -111,18 +120,18 @@ let open_audio_device_stream ~device_id ~format ~channels ~freq ?callback () =
   in
   if is_null stream then
     raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  stream_of_ptr stream
+  adopt_ stream `None
 
 let put_audio_stream_data stream buffer ~pos ~len =
   let buf = buf_ptr ~pos buffer in
-  if not (sdl_put_audio_stream_data (ptr_of_stream stream) buf len) then
+  if not (sdl_put_audio_stream_data stream.ptr buf len) then
     raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
 let put_audio_stream_data_no_copy stream buffer ~pos ~len =
   let buf = buf_ptr ~pos buffer in
   if not
        (sdl_put_audio_stream_data_no_copy
-          (ptr_of_stream stream)
+          stream.ptr
           buf
           len
           null
@@ -131,50 +140,47 @@ let put_audio_stream_data_no_copy stream buffer ~pos ~len =
 
 let get_audio_stream_data stream buffer ~pos ~len =
   let buf = buf_ptr ~pos buffer in
-  let n = sdl_get_audio_stream_data (ptr_of_stream stream) buf len in
+  let n = sdl_get_audio_stream_data stream.ptr buf len in
   if n < 0 then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   n
 
 let get_audio_stream_available stream =
-  let n = sdl_get_audio_stream_available (ptr_of_stream stream) in
+  let n = sdl_get_audio_stream_available stream.ptr in
   if n < 0 then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   n
 
 let get_audio_stream_queued stream =
-  let n = sdl_get_audio_stream_queued (ptr_of_stream stream) in
+  let n = sdl_get_audio_stream_queued stream.ptr in
   if n < 0 then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   n
 
 let flush_audio_stream stream =
   raise_on_false (fun () ->
-      sdl_flush_audio_stream (ptr_of_stream stream))
+      sdl_flush_audio_stream stream.ptr)
 
 let clear_audio_stream stream =
-  raise_on_false (fun () -> sdl_clear_audio_stream (ptr_of_stream stream))
-
-let destroy_audio_stream stream =
-  sdl_destroy_audio_stream (ptr_of_stream stream)
+  raise_on_false (fun () -> sdl_clear_audio_stream stream.ptr)
 
 let pause_audio_stream_device stream =
   raise_on_false (fun () ->
-      sdl_pause_audio_stream_device (ptr_of_stream stream))
+      sdl_pause_audio_stream_device stream.ptr)
 
 let resume_audio_stream_device stream =
   raise_on_false (fun () ->
-      sdl_resume_audio_stream_device (ptr_of_stream stream))
+      sdl_resume_audio_stream_device stream.ptr)
 
 let audio_stream_device_paused stream =
-  sdl_audio_stream_device_paused (ptr_of_stream stream)
+  sdl_audio_stream_device_paused stream.ptr
 
 let set_audio_stream_get_callback stream cb =
   raise_on_false (fun () ->
-      sdl_set_audio_stream_get_callback (ptr_of_stream stream)
+      sdl_set_audio_stream_get_callback stream.ptr
         (wrap_stream_callback cb)
         null)
 
 let set_audio_stream_put_callback stream cb =
   raise_on_false (fun () ->
-      sdl_set_audio_stream_put_callback (ptr_of_stream stream)
+      sdl_set_audio_stream_put_callback stream.ptr
         (wrap_stream_callback cb)
         null)
 

@@ -4,6 +4,7 @@ open Ctypes
 open Foreign
 open Sdl3_consts
 open Sdl3_gamepad
+open Sdl3_internal
 
 (* ---- Ctypes event structures (SDL3 layout) ---- *)
 
@@ -180,7 +181,7 @@ let sdl_wait_event =
   foreign ~release_runtime_lock:true
     "SDL_WaitEvent" (ptr event_t @-> returning bool)
 let sdl_get_window_from_event =
-  foreign "SDL_GetWindowFromEvent" (ptr event_t @-> returning (ptr void))
+  foreign "SDL_GetWindowFromEvent" (ptr event_t @-> returning (ptr window_tag))
 
 (* ---- Public API ---- *)
 
@@ -553,7 +554,7 @@ let get_type ev = event_type_of_int (get_type_raw ev)
 
 let get_window_from_event (ev : t) : Sdl3_video.window option =
   let w = sdl_get_window_from_event (addr ev) in
-  if is_null w then None else Some (Obj.magic w : Sdl3_video.window)
+  if is_null w then None else Some (Sdl3_video.window_of_ptr (to_voidp w))
 
 (* ---- Per-field accessors (zero allocation, reads only requested field) ---- *)
 
@@ -720,4 +721,3 @@ module Gamepad_device = struct
   let which e : instance_id =
     Unsigned.UInt32.to_int32 (Field.get e Field.gamepad_device_which)
 end
-

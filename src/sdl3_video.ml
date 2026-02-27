@@ -1,11 +1,12 @@
 open Ctypes
 open Foreign
+open Sdl3_internal
 open Sdl3_consts
 
 (** Opaque window pointer *)
-type window = unit ptr
+type window = Sdl3_internal.window
 
-let window_of_ptr (p : unit ptr) : window = p
+let window_of_ptr (p : unit ptr) : window = coerce (ptr void) (ptr window_tag) p
 
 type display_id = int32
 
@@ -19,8 +20,6 @@ let _rect_y = field sdl_rect "y" int
 let _rect_w = field sdl_rect "w" int
 let _rect_h = field sdl_rect "h" int
 let () = seal sdl_rect
-
-let sdl_free = foreign "SDL_free" (ptr void @-> returning void)
 
 let sdl_get_displays = foreign "SDL_GetDisplays" (ptr int @-> returning (ptr uint32_t))
 let get_displays () =
@@ -112,28 +111,32 @@ module Window = struct
 end
 
 let sdl_create_window =
-  foreign "SDL_CreateWindow" (string @-> int @-> int @-> uint64_t @-> returning (ptr void))
+  foreign "SDL_CreateWindow" (string @-> int @-> int @-> uint64_t @-> returning (ptr window_tag))
+
+let sdl_destroy_window =
+  foreign "SDL_DestroyWindow" (ptr window_tag @-> returning void)
+
+let destroy_window w =
+  sdl_destroy_window w
 
 let create_window ~title ~width ~height ~flags =
   let wptr =
     sdl_create_window title width height (Unsigned.UInt64.of_int64 (window_flags_to_int64 flags))
   in
   if is_null wptr then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
+  Gc.finalise destroy_window wptr;
   wptr
 
-let destroy_window =
-  foreign "SDL_DestroyWindow" (ptr void @-> returning void)
-
-let sdl_get_window_id = foreign "SDL_GetWindowID" (ptr void @-> returning uint32_t)
+let sdl_get_window_id = foreign "SDL_GetWindowID" (ptr window_tag @-> returning uint32_t)
 let get_window_id w =
   Unsigned.UInt32.to_int32 (sdl_get_window_id w)
 
 let sdl_get_window_from_id =
-  foreign "SDL_GetWindowFromID" (uint32_t @-> returning (ptr void))
+  foreign "SDL_GetWindowFromID" (uint32_t @-> returning (ptr window_tag))
 let get_window_from_id id =
   let w = sdl_get_window_from_id (Unsigned.UInt32.of_int32 id) in
   if is_null w then None else Some w
 
-let sdl_get_window_display = foreign "SDL_GetDisplayForWindow" (ptr void @-> returning uint32_t)
+let sdl_get_window_display = foreign "SDL_GetDisplayForWindow" (ptr window_tag @-> returning uint32_t)
 let get_window_display w =
   Unsigned.UInt32.to_int32 (sdl_get_window_display w)

@@ -227,4 +227,3 @@ module Gamepad_device : sig
   val timestamp : t -> int
   val which : t -> Sdl3_gamepad.instance_id
 end
-
