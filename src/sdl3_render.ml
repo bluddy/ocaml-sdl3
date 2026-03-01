@@ -36,23 +36,14 @@ let blend_mode_of_int i =
   else if i = sdl_blendmode_mul then Blend_mul
   else Blend_unknown i
 
-type scale_mode =
+type scale_mode = Sdl3_internal.scale_mode =
   | Scale_nearest
   | Scale_linear
   | Scale_pixelart
   | Scale_unknown of int
 
-let scale_mode_to_int = function
-  | Scale_nearest -> sdl_scalemode_nearest
-  | Scale_linear -> sdl_scalemode_linear
-  | Scale_pixelart -> sdl_scalemode_pixelart
-  | Scale_unknown i -> i
-
-let scale_mode_of_int i =
-  if i = sdl_scalemode_nearest then Scale_nearest
-  else if i = sdl_scalemode_linear then Scale_linear
-  else if i = sdl_scalemode_pixelart then Scale_pixelart
-  else Scale_unknown i
+let scale_mode_to_int = Sdl3_internal.scale_mode_to_int
+let scale_mode_of_int = Sdl3_internal.scale_mode_of_int
 
 type flip = Flip_none | Flip_horizontal | Flip_vertical | Flip_both
 
@@ -229,7 +220,7 @@ let create_window_and_renderer ~title ~width ~height
   if is_null w' || is_null r' then
     raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
   let r = r' in
-  let destroy_renderer_ = foreign "SDL_DestroyRenderer" (Sdl3_internal.renderer @-> returning void) in
+  let destroy_renderer_ = foreign "SDL_DestroyRenderer" (ptr renderer_tag @-> returning void) in
   Gc.finalise destroy_renderer_ r;
   (w', r)
 
@@ -239,20 +230,20 @@ let sdl_create_renderer =
 let create_renderer window ?name () =
   let p = sdl_create_renderer window name in
   if is_null p then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  let destroy_renderer_ = foreign "SDL_DestroyRenderer" (Sdl3_internal.renderer @-> returning void) in
+  let destroy_renderer_ = foreign "SDL_DestroyRenderer" (ptr renderer_tag @-> returning void) in
   Gc.finalise destroy_renderer_ p;
   p
 
-let destroy_renderer = foreign "SDL_DestroyRenderer" (Sdl3_internal.renderer @-> returning void)
+let destroy_renderer = foreign "SDL_DestroyRenderer" (ptr renderer_tag @-> returning void)
 
-let sdl_get_render_window = foreign "SDL_GetRenderWindow" (Sdl3_internal.renderer @-> returning Sdl3_internal.window)
+let sdl_get_render_window = foreign "SDL_GetRenderWindow" (ptr renderer_tag @-> returning Sdl3_internal.window)
 
 let get_render_window renderer =
   let w = sdl_get_render_window renderer in
   if is_null w then None else Some w
 
 let sdl_get_current_render_output_size =
-  foreign "SDL_GetCurrentRenderOutputSize" (Sdl3_internal.renderer @-> ptr int @-> ptr int @-> returning bool)
+  foreign "SDL_GetCurrentRenderOutputSize" (ptr renderer_tag @-> ptr int @-> ptr int @-> returning bool)
 
 type draw_color = { r : int; g : int; b : int; a : int }
 type output_size = { width : int; height : int }
@@ -325,7 +316,7 @@ let create_texture renderer ~format ~access ~width ~height =
       (texture_access_to_int access) width height
   in
   if is_null p then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  let destroy_texture_ = foreign "SDL_DestroyTexture" (Sdl3_internal.texture @-> returning void) in
+  let destroy_texture_ = foreign "SDL_DestroyTexture" (ptr texture_tag @-> returning void) in
   Gc.finalise destroy_texture_ p;
   p
 
@@ -335,11 +326,11 @@ let sdl_create_texture_from_surface =
 let create_texture_from_surface (renderer : renderer) (surface: Sdl3_surface.surface) =
   let t = sdl_create_texture_from_surface renderer (Sdl3_surface.to_ptr_ surface |> coerce (ptr void) Sdl3_internal.surface_ptr) in
   if is_null t then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
-  let destroy_texture_ = foreign "SDL_DestroyTexture" (Sdl3_internal.texture @-> returning void) in
+  let destroy_texture_ = foreign "SDL_DestroyTexture" (ptr texture_tag @-> returning void) in
   Gc.finalise destroy_texture_ t;
   t
 
-let destroy_texture = foreign "SDL_DestroyTexture" (Sdl3_internal.texture @-> returning void)
+let destroy_texture = foreign "SDL_DestroyTexture" (ptr texture_tag @-> returning void)
 
 let sdl_render_texture =
   foreign "SDL_RenderTexture"
@@ -543,6 +534,20 @@ let render_geometry renderer ?texture vertices indices =
         (CArray.start arr, Array.length idx)
   in
   if not (sdl_render_geometry renderer tex (CArray.start verts) nv idx_ptr ni)
+  then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
+
+let render_geometry_ba renderer ?texture vertices ?indices () =
+  let tex = match texture with None -> coerce (ptr void) Sdl3_internal.texture null | Some t -> t in
+  let nv = (Bigarray.Array1.dim vertices) / (sizeof sdl_vertex) in
+  let v_ptr = coerce (ptr void) (ptr sdl_vertex) (to_voidp (bigarray_start array1 vertices)) in
+  let (idx_ptr, ni) =
+    match indices with
+    | None -> (coerce (ptr void) (ptr int) null, 0)
+    | Some idx ->
+        let n = Bigarray.Array1.dim idx in
+        (coerce (ptr void) (ptr int) (to_voidp (bigarray_start array1 idx)), n)
+  in
+  if not (sdl_render_geometry renderer tex v_ptr nv idx_ptr ni)
   then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
 
 (* --- RenderGeometryRaw --- *)

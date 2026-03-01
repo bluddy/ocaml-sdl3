@@ -105,6 +105,15 @@ val log_set_priority : log_category -> log_priority -> unit
 val get_version : unit -> int * int * int
 val get_revision : unit -> string
 
+module Timer : sig
+  val get_ticks : unit -> Unsigned.uint64
+  val get_ticks_ns : unit -> Unsigned.uint64
+  val get_performance_counter : unit -> Unsigned.uint64
+  val get_performance_frequency : unit -> Unsigned.uint64
+  val delay : Unsigned.uint32 -> unit
+  val delay_ns : Unsigned.uint64 -> unit
+end
+
 (** {1 Video}
 
     [create_window] raises [Sdl_error] on failure. [destroy_window] invalidates
@@ -158,6 +167,14 @@ module Event : module type of Sdl3_events
 module Gamepad : module type of Sdl3_gamepad
 
 (** {1 Audio} *)
+module Gpu : module type of Sdl3_gpu
+module Mouse : module type of Sdl3_mouse
+module Keyboard : module type of Sdl3_keyboard
+module MessageBox : module type of Sdl3_messagebox
+module Clipboard : module type of Sdl3_clipboard
+module IOStream : module type of Sdl3_iostream
+module Filesystem : module type of Sdl3_filesystem
+module Properties : module type of Sdl3_properties
 module Audio : module type of Sdl3_audio
 module Surface : module type of Sdl3_surface
 module Render : module type of Sdl3_render

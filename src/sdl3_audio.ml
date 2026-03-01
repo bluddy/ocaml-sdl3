@@ -27,6 +27,18 @@ let make_spec ~format ~channels ~freq =
   setf spec audio_spec_freq freq;
   spec
 
+type spec = {
+  format : int;
+  channels : int;
+  freq : int;
+}
+
+let spec_of_c s = {
+  format = Unsigned.UInt32.to_int (getf s audio_spec_format);
+  channels = getf s audio_spec_channels;
+  freq = getf s audio_spec_freq;
+}
+
 (* Stream callback: userdata, stream, additional_amount, total_amount -> void. *)
 let audio_stream_callback =
   Foreign.funptr_opt
@@ -99,6 +111,34 @@ let wrap_stream_callback cb =
 let buf_ptr ?(pos = 0) buffer =
   let ptr = bigarray_start array1 buffer in
   to_voidp (ptr +@ pos)
+
+(* --- Devices --- *)
+
+let sdl_get_audio_playback_devices = foreign "SDL_GetAudioPlaybackDevices" (ptr int @-> returning (ptr uint32_t))
+let sdl_get_audio_recording_devices = foreign "SDL_GetAudioRecordingDevices" (ptr int @-> returning (ptr uint32_t))
+
+let get_devices f =
+  let count = allocate int 0 in
+  let arr = f count in
+  if is_null arr then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
+  let n = !@ count in
+  let ids = List.init n (fun i -> Unsigned.UInt32.to_int32 (CArray.get (CArray.from_ptr arr n) i)) in
+  sdl_free (to_voidp arr);
+  ids
+
+let get_playback_devices () = get_devices sdl_get_audio_playback_devices
+let get_recording_devices () = get_devices sdl_get_audio_recording_devices
+
+let sdl_get_audio_device_name = foreign "SDL_GetAudioDeviceName" (uint32_t @-> returning string_opt)
+let get_device_name id = sdl_get_audio_device_name (Unsigned.UInt32.of_int32 id)
+
+let sdl_get_audio_device_format = foreign "SDL_GetAudioDeviceFormat" (uint32_t @-> ptr audio_spec @-> ptr int @-> returning bool)
+let get_device_format id =
+  let spec = make audio_spec in
+  let sample_frames = allocate int 0 in
+  if not (sdl_get_audio_device_format (Unsigned.UInt32.of_int32 id) (addr spec) sample_frames) then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
+  (spec_of_c spec, !@ sample_frames)
 
 (* --- Public API --- *)
 

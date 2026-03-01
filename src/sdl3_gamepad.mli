@@ -66,6 +66,30 @@ type gamepad_type =
 val gamepad_type_of_int : int -> gamepad_type
 val gamepad_type_to_int : gamepad_type -> int
 
+type power_state =
+  | Power_unknown
+  | Power_on_battery
+  | Power_no_battery
+  | Power_charging
+  | Power_charged
+
+type connection_state =
+  | Conn_invalid
+  | Disconnected
+  | Connecting
+  | Connected
+  | Conn_wired
+
+type sensor_type =
+  | Sensor_invalid
+  | Sensor_unknown
+  | Sensor_accel
+  | Sensor_gyro
+  | Sensor_accel_l
+  | Sensor_gyro_l
+  | Sensor_accel_r
+  | Sensor_gyro_r
+
 val get_gamepads : unit -> instance_id list
 (** [get_gamepads ()] returns connected gamepad instance IDs. *)
 
@@ -99,6 +123,24 @@ val has_axis : t -> gamepad_axis -> bool
 val get_player_index : t -> int
 val set_player_index : t -> int -> unit
 val get_from_player_index : int -> t option
+
+val get_power_info : t -> power_state * int
+(** [get_power_info g] returns the power state and battery percentage. *)
+
+val get_connection_state : t -> connection_state
+
+(** {2 Sensors} *)
+
+val set_sensor_enabled : t -> sensor_type -> bool -> unit
+val is_sensor_enabled : t -> sensor_type -> bool
+val get_sensor_data : t -> sensor_type -> float * float * float
+
+(** {2 Touchpads} *)
+
+val get_num_touchpads : t -> int
+val get_num_touchpad_fingers : t -> int -> int
+val get_touchpad_finger : t -> int -> int -> bool * float * float * float
+(** [get_touchpad_finger g touchpad finger] returns (down, x, y, pressure). *)
 
 (** Rumble, LED, mappings. *)
 

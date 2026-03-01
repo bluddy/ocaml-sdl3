@@ -142,6 +142,34 @@ module Gamepad_device_event = struct
   let () = seal t
 end
 
+module Gamepad_touchpad_event = struct
+  type t
+  let t : t structure typ = structure "SDL_GamepadTouchpadEvent"
+  let _type = field t "type" uint32_t
+  let _reserved = field t "reserved" uint32_t
+  let timestamp = field t "timestamp" uint64_t
+  let which = field t "which" uint32_t
+  let touchpad = field t "touchpad" int32_t
+  let finger = field t "finger" int32_t
+  let x = field t "x" float
+  let y = field t "y" float
+  let pressure = field t "pressure" float
+  let () = seal t
+end
+
+module Gamepad_sensor_event = struct
+  type t
+  let t : t structure typ = structure "SDL_GamepadSensorEvent"
+  let _type = field t "type" uint32_t
+  let _reserved = field t "reserved" uint32_t
+  let timestamp = field t "timestamp" uint64_t
+  let which = field t "which" uint32_t
+  let sensor = field t "sensor" int32_t
+  let data = field t "data" (array 3 float)
+  let sensor_timestamp = field t "sensor_timestamp" uint64_t
+  let () = seal t
+end
+
 (* SDL_CommonEvent - shared header for all events *)
 module Common_event = struct
   type t
@@ -169,6 +197,8 @@ let drop = field event_t "drop" Drop_event.t
 let gaxis = field event_t "gaxis" Gamepad_axis_event.t
 let gbutton = field event_t "gbutton" Gamepad_button_event.t
 let gdevice = field event_t "gdevice" Gamepad_device_event.t
+let gtouchpad = field event_t "gtouchpad" Gamepad_touchpad_event.t
+let gsensor = field event_t "gsensor" Gamepad_sensor_event.t
 let _padding =
   field event_t "padding"
     (abstract ~name:"SDL_Event_padding" ~size:(sdl_event_size ()) ~alignment:1)
@@ -629,6 +659,22 @@ module Field = struct
   (* Gamepad device *)
   let gamepad_device_timestamp = F (gdevice, Gamepad_device_event.timestamp)
   let gamepad_device_which = F (gdevice, Gamepad_device_event.which)
+
+  (* Gamepad touchpad *)
+  let gamepad_touchpad_timestamp = F (gtouchpad, Gamepad_touchpad_event.timestamp)
+  let gamepad_touchpad_which = F (gtouchpad, Gamepad_touchpad_event.which)
+  let gamepad_touchpad_touchpad = F (gtouchpad, Gamepad_touchpad_event.touchpad)
+  let gamepad_touchpad_finger = F (gtouchpad, Gamepad_touchpad_event.finger)
+  let gamepad_touchpad_x = F (gtouchpad, Gamepad_touchpad_event.x)
+  let gamepad_touchpad_y = F (gtouchpad, Gamepad_touchpad_event.y)
+  let gamepad_touchpad_pressure = F (gtouchpad, Gamepad_touchpad_event.pressure)
+
+  (* Gamepad sensor *)
+  let gamepad_sensor_timestamp = F (gsensor, Gamepad_sensor_event.timestamp)
+  let gamepad_sensor_which = F (gsensor, Gamepad_sensor_event.which)
+  let gamepad_sensor_sensor = F (gsensor, Gamepad_sensor_event.sensor)
+  let gamepad_sensor_data = F (gsensor, Gamepad_sensor_event.data)
+  let gamepad_sensor_sensor_timestamp = F (gsensor, Gamepad_sensor_event.sensor_timestamp)
 end
 
 (** Accessors by event kind. Only the requested field is read; no allocation. *)
@@ -720,4 +766,24 @@ module Gamepad_device = struct
     Unsigned.UInt64.to_int (Field.get e Field.gamepad_device_timestamp)
   let which e : instance_id =
     Unsigned.UInt32.to_int32 (Field.get e Field.gamepad_device_which)
+end
+
+module Gamepad_touchpad = struct
+  let timestamp e = Unsigned.UInt64.to_int (Field.get e Field.gamepad_touchpad_timestamp)
+  let which e : instance_id = Unsigned.UInt32.to_int32 (Field.get e Field.gamepad_touchpad_which)
+  let touchpad e = Signed.Int32.to_int (Field.get e Field.gamepad_touchpad_touchpad)
+  let finger e = Signed.Int32.to_int (Field.get e Field.gamepad_touchpad_finger)
+  let x e = Field.get e Field.gamepad_touchpad_x
+  let y e = Field.get e Field.gamepad_touchpad_y
+  let pressure e = Field.get e Field.gamepad_touchpad_pressure
+end
+
+module Gamepad_sensor = struct
+  let timestamp e = Unsigned.UInt64.to_int (Field.get e Field.gamepad_sensor_timestamp)
+  let which e : instance_id = Unsigned.UInt32.to_int32 (Field.get e Field.gamepad_sensor_which)
+  let sensor e = Signed.Int32.to_int (Field.get e Field.gamepad_sensor_sensor)
+  let data e = 
+    let arr = Field.get e Field.gamepad_sensor_data in
+    (CArray.get arr 0, CArray.get arr 1, CArray.get arr 2)
+  let sensor_timestamp e = Unsigned.UInt64.to_int (Field.get e Field.gamepad_sensor_sensor_timestamp)
 end

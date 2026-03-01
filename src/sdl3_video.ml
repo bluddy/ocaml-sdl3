@@ -12,14 +12,9 @@ type display_id = int32
 
 let display_id_to_int32 id = id
 
-type rect_tag
-let sdl_rect : rect_tag structure typ = structure "SDL_Rect"
+type rect_tag = Sdl3_internal.rect_tag
+let sdl_rect = Sdl3_internal.rect_tag
 type rect = rect_tag structure
-let _rect_x = field sdl_rect "x" int
-let _rect_y = field sdl_rect "y" int
-let _rect_w = field sdl_rect "w" int
-let _rect_h = field sdl_rect "h" int
-let () = seal sdl_rect
 
 let sdl_get_displays = foreign "SDL_GetDisplays" (ptr int @-> returning (ptr uint32_t))
 let get_displays () =
@@ -52,17 +47,17 @@ let get_display_bounds id =
 let rect_alloc () = make sdl_rect
 
 module Rect = struct
-  let x r = getf r _rect_x
-  let y r = getf r _rect_y
-  let w r = getf r _rect_w
-  let h r = getf r _rect_h
+  let x r = getf r Sdl3_internal.rect_x
+  let y r = getf r Sdl3_internal.rect_y
+  let w r = getf r Sdl3_internal.rect_w
+  let h r = getf r Sdl3_internal.rect_h
 
   let make ~x ~y ~w ~h =
     let r = make sdl_rect in
-    setf r _rect_x x;
-    setf r _rect_y y;
-    setf r _rect_w w;
-    setf r _rect_h h;
+    setf r Sdl3_internal.rect_x x;
+    setf r Sdl3_internal.rect_y y;
+    setf r Sdl3_internal.rect_w w;
+    setf r Sdl3_internal.rect_h h;
     r
 end
 

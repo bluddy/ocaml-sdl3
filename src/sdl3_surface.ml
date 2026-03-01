@@ -97,6 +97,106 @@ let of_ptr_ p = { ptr = coerce (ptr void) surface_ptr p; source = `None }
 let to_ptr_ s = coerce surface_ptr (ptr void) s.ptr
 let adopt_ptr_ p = adopt_ (coerce (ptr void) surface_ptr p) `None
 
+(* Blitting *)
+
+let sdl_blit_surface =
+  foreign "SDL_BlitSurface"
+    (surface_ptr @-> ptr rect_tag @-> surface_ptr @-> ptr rect_tag @-> returning bool)
+
+let blit ~src ?srcrect ~dst ?dstrect () =
+  let src_r = match srcrect with None -> coerce (ptr void) (ptr rect_tag) null | Some r -> addr r in
+  let dst_r = match dstrect with None -> coerce (ptr void) (ptr rect_tag) null | Some r -> addr r in
+  if not (sdl_blit_surface src.ptr src_r dst.ptr dst_r) then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
+
+let sdl_blit_surface_scaled =
+  foreign "SDL_BlitSurfaceScaled"
+    (surface_ptr @-> ptr rect_tag @-> surface_ptr @-> ptr rect_tag @-> int @-> returning bool)
+
+let blit_scaled ~src ?srcrect ~dst ?dstrect ~scale_mode () =
+  let src_r = match srcrect with None -> coerce (ptr void) (ptr rect_tag) null | Some r -> addr r in
+  let dst_r = match dstrect with None -> coerce (ptr void) (ptr rect_tag) null | Some r -> addr r in
+  let mode = scale_mode_to_int scale_mode in
+  if not (sdl_blit_surface_scaled src.ptr src_r dst.ptr dst_r mode) then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
+
+let sdl_blit_surface_tiled =
+  foreign "SDL_BlitSurfaceTiled"
+    (surface_ptr @-> ptr rect_tag @-> surface_ptr @-> ptr rect_tag @-> returning bool)
+
+let blit_tiled ~src ?srcrect ~dst ?dstrect () =
+  let src_r = match srcrect with None -> coerce (ptr void) (ptr rect_tag) null | Some r -> addr r in
+  let dst_r = match dstrect with None -> coerce (ptr void) (ptr rect_tag) null | Some r -> addr r in
+  if not (sdl_blit_surface_tiled src.ptr src_r dst.ptr dst_r) then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
+
+let sdl_blit_surface_9_grid =
+  foreign "SDL_BlitSurface9Grid"
+    (surface_ptr @-> ptr rect_tag @-> int @-> int @-> int @-> int @-> float @-> surface_ptr @-> ptr rect_tag @-> returning bool)
+
+let blit_9_grid ~src ?srcrect ~left ~right ~top ~bottom ~scale ~dst ?dstrect () =
+  let src_r = match srcrect with None -> coerce (ptr void) (ptr rect_tag) null | Some r -> addr r in
+  let dst_r = match dstrect with None -> coerce (ptr void) (ptr rect_tag) null | Some r -> addr r in
+  if not (sdl_blit_surface_9_grid src.ptr src_r left right top bottom scale dst.ptr dst_r) then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
+
+(* Filling *)
+
+let sdl_fill_surface_rect =
+  foreign "SDL_FillSurfaceRect"
+    (surface_ptr @-> ptr rect_tag @-> uint32_t @-> returning bool)
+
+let fill_rect surface ?rect color =
+  let r = match rect with None -> coerce (ptr void) (ptr rect_tag) null | Some r -> addr r in
+  if not (sdl_fill_surface_rect surface.ptr r (Unsigned.UInt32.of_int color)) then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
+
+(* Conversion *)
+
+let sdl_convert_surface =
+  foreign "SDL_ConvertSurface" (surface_ptr @-> uint32_t @-> returning surface_ptr)
+
+let convert surface format =
+  let p = sdl_convert_surface surface.ptr (Unsigned.UInt32.of_int format) in
+  if is_null p then raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
+  adopt_ p `None
+
+(* Modulators *)
+
+let sdl_set_surface_color_mod =
+  foreign "SDL_SetSurfaceColorMod" (surface_ptr @-> uint8_t @-> uint8_t @-> uint8_t @-> returning bool)
+
+let set_color_mod surface ~r ~g ~b =
+  if not (sdl_set_surface_color_mod surface.ptr (Unsigned.UInt8.of_int r) (Unsigned.UInt8.of_int g) (Unsigned.UInt8.of_int b)) then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
+
+let sdl_get_surface_color_mod =
+  foreign "SDL_GetSurfaceColorMod" (surface_ptr @-> ptr uint8_t @-> ptr uint8_t @-> ptr uint8_t @-> returning bool)
+
+let get_color_mod surface =
+  let r = allocate uint8_t Unsigned.UInt8.zero in
+  let g = allocate uint8_t Unsigned.UInt8.zero in
+  let b = allocate uint8_t Unsigned.UInt8.zero in
+  if not (sdl_get_surface_color_mod surface.ptr r g b) then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
+  (Unsigned.UInt8.to_int !@ r, Unsigned.UInt8.to_int !@ g, Unsigned.UInt8.to_int !@ b)
+
+let sdl_set_surface_alpha_mod =
+  foreign "SDL_SetSurfaceAlphaMod" (surface_ptr @-> uint8_t @-> returning bool)
+
+let set_alpha_mod surface alpha =
+  if not (sdl_set_surface_alpha_mod surface.ptr (Unsigned.UInt8.of_int alpha)) then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
+
+let sdl_get_surface_alpha_mod =
+  foreign "SDL_GetSurfaceAlphaMod" (surface_ptr @-> ptr uint8_t @-> returning bool)
+
+let get_alpha_mod surface =
+  let a = allocate uint8_t Unsigned.UInt8.zero in
+  if not (sdl_get_surface_alpha_mod surface.ptr a) then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
+  Unsigned.UInt8.to_int !@ a
+
 module Surface = struct
   let view s = !@ (surface_of_ptr s.ptr)
   let w s = getf (view s) _surface_w

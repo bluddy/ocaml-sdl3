@@ -196,6 +196,15 @@ let get_version () =
   let v = sdl_get_version () in
   (version_num_major v, version_num_minor v, version_num_micro v)
 
+module Timer = struct
+  let get_ticks = foreign "SDL_GetTicks" (void @-> returning uint64_t)
+  let get_ticks_ns = foreign "SDL_GetTicksNS" (void @-> returning uint64_t)
+  let get_performance_counter = foreign "SDL_GetPerformanceCounter" (void @-> returning uint64_t)
+  let get_performance_frequency = foreign "SDL_GetPerformanceFrequency" (void @-> returning uint64_t)
+  let delay = foreign "SDL_Delay" (uint32_t @-> returning void)
+  let delay_ns = foreign "SDL_DelayNS" (uint64_t @-> returning void)
+end
+
 (** {1 Events} *)
 module Event = Sdl3_events
 
@@ -205,6 +214,14 @@ module Gamepad = Sdl3_gamepad
 (** {1 Audio} *)
 module Audio = Sdl3_audio
 
+module Gpu = Sdl3_gpu
+module Mouse = Sdl3_mouse
+module Keyboard = Sdl3_keyboard
+module MessageBox = Sdl3_messagebox
+module Clipboard = Sdl3_clipboard
+module IOStream = Sdl3_iostream
+module Filesystem = Sdl3_filesystem
+module Properties = Sdl3_properties
 module Surface = Sdl3_surface
 module Render = Sdl3_render
 

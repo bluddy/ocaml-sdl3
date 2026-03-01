@@ -6,30 +6,7 @@
 
     Call [Sdl3.init [ Sdl3.Init.audio ]] before using audio.
     Device starts paused; call [resume_audio_stream_device] to start playback.
-
-    {2 Push model (small to medium files)}
-
-    For most purposes, use the push model: allocate buffers, fill them with
-    audio, call [put_audio_stream_data]. SDL copies the data. Simple and safe.
-
-    {2 Pull model (streaming)}
-
-    For streaming large audio files, the pull model is necessary: use
-    [set_audio_stream_get_callback]. When SDL needs data, your callback runs;
-    read the next chunk and call [put_audio_stream_data] from inside. More
-    challenging: the callback runs from SDL's audio thread (avoid allocating
-    or blocking; use pre-allocated Bigarrays).
-
-    {2 Zero-copy}
-
-    [put_audio_stream_data_no_copy] avoids copying but the buffer must stay
-    valid until SDL consumes it (stream destroyed or cleared). Prefer
-    [put_audio_stream_data] or the pull model.
-
-    {2 Callback safety}
-
-    Even with the runtime lock, callbacks must stay short and non-blocking to
-    avoid audio dropouts. *)
+*)
 
 type stream
 (** Opaque audio stream handle. *)
@@ -37,13 +14,25 @@ type stream
 type buffer = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 (** Byte buffer; [Array1.dim b] is length in bytes. *)
 
+type spec = {
+  format : int;
+  channels : int;
+  freq : int;
+}
+
 module Device : sig
   val default_playback : int32
-  (** SDL sentinel for default playback device (0xFFFFFFFF as uint32). *)
+  (** SDL sentinel for default playback device (0xFFFFFFFFl). *)
 
   val default_recording : int32
-  (** SDL sentinel for default recording device (0xFFFFFFFE as uint32). *)
+  (** SDL sentinel for default recording device (0xFFFFFFFEl). *)
 end
+
+val get_playback_devices : unit -> int32 list
+val get_recording_devices : unit -> int32 list
+val get_device_name : int32 -> string option
+val get_device_format : int32 -> spec * int
+(** [get_device_format id] returns the device's native spec and recommended sample frames. *)
 
 module Format : sig
   val s8 : int

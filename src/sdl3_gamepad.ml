@@ -171,6 +171,56 @@ let gamepad_type_of_int = function
   | 11 -> Gamecube
   | i -> Unknown_type i
 
+type power_state =
+  | Power_unknown
+  | Power_on_battery
+  | Power_no_battery
+  | Power_charging
+  | Power_charged
+
+let power_state_of_int = function
+  | -1 -> Power_unknown
+  | 0 -> Power_on_battery
+  | 1 -> Power_no_battery
+  | 2 -> Power_charging
+  | 3 -> Power_charged
+  | _ -> Power_unknown
+
+type connection_state =
+  | Conn_invalid
+  | Disconnected
+  | Connecting
+  | Connected
+  | Conn_wired
+
+let connection_state_of_int = function
+  | -1 -> Conn_invalid
+  | 0 -> Disconnected
+  | 1 -> Connecting
+  | 2 -> Connected
+  | 3 -> Conn_wired
+  | _ -> Conn_invalid
+
+type sensor_type =
+  | Sensor_invalid
+  | Sensor_unknown
+  | Sensor_accel
+  | Sensor_gyro
+  | Sensor_accel_l
+  | Sensor_gyro_l
+  | Sensor_accel_r
+  | Sensor_gyro_r
+
+let sensor_type_to_int = function
+  | Sensor_invalid -> -1
+  | Sensor_unknown -> 0
+  | Sensor_accel -> 1
+  | Sensor_gyro -> 2
+  | Sensor_accel_l -> 3
+  | Sensor_gyro_l -> 4
+  | Sensor_accel_r -> 5
+  | Sensor_gyro_r -> 6
+
 let sdl_get_gamepads = foreign "SDL_GetGamepads" (ptr int @-> returning (ptr uint32_t))
 
 let get_gamepads () =
@@ -275,6 +325,70 @@ let sdl_get_gamepad_from_player_index =
 let get_from_player_index index =
   let p = sdl_get_gamepad_from_player_index index in
   if is_null p then None else Some p
+
+let sdl_get_gamepad_power_info =
+  foreign "SDL_GetGamepadPowerInfo" (ptr gamepad_tag @-> ptr int @-> returning int)
+
+let get_power_info gamepad =
+  let percent = allocate int 0 in
+  let state = sdl_get_gamepad_power_info gamepad percent in
+  (power_state_of_int state, !@ percent)
+
+let sdl_get_gamepad_connection_state =
+  foreign "SDL_GetGamepadConnectionState" (ptr gamepad_tag @-> returning int)
+
+let get_connection_state gamepad =
+  connection_state_of_int (sdl_get_gamepad_connection_state gamepad)
+
+(* Sensors *)
+
+let sdl_set_gamepad_sensor_enabled =
+  foreign "SDL_SetGamepadSensorEnabled" (ptr gamepad_tag @-> int @-> bool @-> returning bool)
+
+let set_sensor_enabled gamepad stype enabled =
+  if not (sdl_set_gamepad_sensor_enabled gamepad (sensor_type_to_int stype) enabled) then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()))
+
+let sdl_gamepad_sensor_enabled =
+  foreign "SDL_GamepadSensorEnabled" (ptr gamepad_tag @-> int @-> returning bool)
+
+let is_sensor_enabled gamepad stype =
+  sdl_gamepad_sensor_enabled gamepad (sensor_type_to_int stype)
+
+let sdl_get_gamepad_sensor_data =
+  foreign "SDL_GetGamepadSensorData" (ptr gamepad_tag @-> int @-> ptr float @-> int @-> returning bool)
+
+let get_sensor_data gamepad stype =
+  let data = CArray.make float 3 in
+  if not (sdl_get_gamepad_sensor_data gamepad (sensor_type_to_int stype) (CArray.start data) 3) then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
+  (CArray.get data 0, CArray.get data 1, CArray.get data 2)
+
+(* Touchpad *)
+
+let sdl_get_num_gamepad_touchpads =
+  foreign "SDL_GetNumGamepadTouchpads" (ptr gamepad_tag @-> returning int)
+
+let get_num_touchpads = sdl_get_num_gamepad_touchpads
+
+let sdl_get_num_gamepad_touchpad_fingers =
+  foreign "SDL_GetNumGamepadTouchpadFingers" (ptr gamepad_tag @-> int @-> returning int)
+
+let get_num_touchpad_fingers gamepad touchpad =
+  sdl_get_num_gamepad_touchpad_fingers gamepad touchpad
+
+let sdl_get_gamepad_touchpad_finger =
+  foreign "SDL_GetGamepadTouchpadFinger"
+    (ptr gamepad_tag @-> int @-> int @-> ptr bool @-> ptr float @-> ptr float @-> ptr float @-> returning bool)
+
+let get_touchpad_finger gamepad touchpad finger =
+  let down = allocate bool false in
+  let x = allocate float 0.0 in
+  let y = allocate float 0.0 in
+  let pressure = allocate float 0.0 in
+  if not (sdl_get_gamepad_touchpad_finger gamepad touchpad finger down x y pressure) then
+    raise (Sdl3_error.Sdl_error (Sdl3_error.get_error ()));
+  (!@ down, !@ x, !@ y, !@ pressure)
 
 (* Phase 6.4: Rumble, LED, Mappings *)
 

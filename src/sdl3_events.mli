@@ -227,3 +227,21 @@ module Gamepad_device : sig
   val timestamp : t -> int
   val which : t -> Sdl3_gamepad.instance_id
 end
+
+module Gamepad_touchpad : sig
+  val timestamp : t -> int
+  val which : t -> Sdl3_gamepad.instance_id
+  val touchpad : t -> int
+  val finger : t -> int
+  val x : t -> float
+  val y : t -> float
+  val pressure : t -> float
+end
+
+module Gamepad_sensor : sig
+  val timestamp : t -> int
+  val which : t -> Sdl3_gamepad.instance_id
+  val sensor : t -> int
+  val data : t -> float * float * float
+  val sensor_timestamp : t -> int
+end

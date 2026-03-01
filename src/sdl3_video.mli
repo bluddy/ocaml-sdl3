@@ -4,7 +4,7 @@
 
     Rect is a C-backed structure. Use [Rect.x], [Rect.y], [Rect.w], [Rect.h]
     to read fields; no OCaml record allocation. *)
-type rect_tag
+type rect_tag = Sdl3_internal.rect_tag
 type rect = rect_tag Ctypes.structure
 
 val rect_alloc : unit -> rect

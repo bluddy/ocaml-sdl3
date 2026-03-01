@@ -173,6 +173,15 @@ val render_texture_9_grid_tiled :
 (** {2 Geometry rendering} *)
 val render_geometry :
   renderer -> ?texture:texture -> vertex array -> int array option -> unit
+(** Interleaved geometry from OCaml array. Convenient but slow (performs conversion). *)
+
+val render_geometry_ba :
+  renderer -> ?texture:texture -> 
+  (float, Bigarray.float32_elt, Bigarray.c_layout) Bigarray.Array1.t ->
+  ?indices:(int, Bigarray.int_elt, Bigarray.c_layout) Bigarray.Array1.t ->
+  unit -> unit
+(** Interleaved geometry from Bigarray. The Bigarray should contain [SDL_Vertex] data.
+    [num_vertices] is [Array1.dim vertices / 8] (assuming 8 floats per vertex). *)
 
 val render_geometry_raw :
   renderer ->
@@ -189,6 +198,7 @@ val render_geometry_raw :
   ?size_indices:int ->
   unit ->
   unit
+(** High-performance non-interleaved geometry rendering from Bigarrays. *)
 
 (** {2 Read pixels} *)
 val render_read_pixels :
